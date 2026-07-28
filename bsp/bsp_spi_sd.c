@@ -27,10 +27,19 @@ void BSP_SPI2_Init(void)
     SPI_InitStruct.SPI_CPOL              = SPI_CPOL_High;
     SPI_InitStruct.SPI_CPHA              = SPI_CPHA_2Edge;
     SPI_InitStruct.SPI_NSS               = SPI_NSS_Soft;
-    SPI_InitStruct.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2; /* 36MHz/2=18MHz, SD初始化后提速 */
+    SPI_InitStruct.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_256; /* 36MHz/256≈140kHz, SD规范要求初始化期<=400kHz */
     SPI_InitStruct.SPI_FirstBit          = SPI_FirstBit_MSB;
     SPI_InitStruct.SPI_CRCPolynomial     = 7;
     SPI_Init(SPI2, &SPI_InitStruct);
+    SPI_Cmd(SPI2, ENABLE);
+}
+
+/* SD 初始化完成后将 SPI2 提速至 18MHz (Prescaler_2) 用于正常读写 */
+void SD_SPI_SetHighSpeed(void)
+{
+    SPI_Cmd(SPI2, DISABLE);
+    SPI2->CR1 &= ~SPI_CR1_BR;
+    SPI2->CR1 |= SPI_BaudRatePrescaler_2;
     SPI_Cmd(SPI2, ENABLE);
 }
 
@@ -45,7 +54,8 @@ static uint8_t SPI2_SendRecv(uint8_t byte)
 /* SD 卡 SPI 模式初始化: CMD0 -> ACMD41 -> 就绪 */
 uint8_t SD_SPI_Init(void)
 {
-    uint8_t r1, retry;
+    uint8_t r1;
+    uint16_t retry;
 
     BSP_SD_CS_High();
     for (int i = 0; i < 10; i++) SPI2_SendRecv(0xFF);
@@ -61,7 +71,7 @@ uint8_t SD_SPI_Init(void)
     if (!retry) { BSP_SD_CS_High(); return 1; }
 
     /* ACMD41: SD_SEND_OP_COND */
-    retry = 100;
+    retry = 1000;
     do {
         SPI2_SendRecv(0x77); SPI2_SendRecv(0); SPI2_SendRecv(0);
         SPI2_SendRecv(0); SPI2_SendRecv(0); SPI2_SendRecv(0xFF);
@@ -73,7 +83,11 @@ uint8_t SD_SPI_Init(void)
 
     BSP_SD_CS_High();
     SPI2_SendRecv(0xFF);
-    return (r1 == 0x00) ? 0 : 1;
+    if (r1 != 0x00) return 1;
+
+    /* 初始化成功, 提速至 18MHz 用于后续读写 */
+    SD_SPI_SetHighSpeed();
+    return 0;
 }
 
 uint8_t SD_SPI_ReadBlock(uint32_t addr, uint8_t *buf)
