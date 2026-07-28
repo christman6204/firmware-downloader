@@ -408,7 +408,7 @@ void AppTask_Download(void *p_arg)
                     skip     -= (uint32_t)br;
                     sd_fptr  += (uint32_t)br;
                 }
-                if (skip > 0u) {
+                if (skip > 0u && skip < (uint32_t)APP_SEGMENT_SIZE) {
                     uint16_t br = 0u;
                     (void)SD_FileRead(g_seg_buf, (uint16_t)skip, &br);
                     sd_fptr += (uint32_t)br;
@@ -579,6 +579,7 @@ void AppTask_Download(void *p_arg)
         }
 
         default:
+            SysState_SetTransferLock(0u);
             state = DL_STATE_IDLE;
             break;
 
