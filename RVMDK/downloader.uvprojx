@@ -658,6 +658,16 @@
               <FileType>5</FileType>
               <FilePath>..\app\protocol.h</FilePath>
             </File>
+            <File>
+              <FileName>task_buzzer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\app\task_buzzer.c</FilePath>
+            </File>
+            <File>
+              <FileName>task_buzzer.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\app\task_buzzer.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
