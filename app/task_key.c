@@ -5,9 +5,9 @@
  * 关键点：
  *   - 20ms 周期扫描，软件消抖（电平变化后等待 ~1 个 20ms 周期确认）。
  *   - 长按阈值 APP_KEY_LONG_PRESS_TICKS（app_cfg.h 中 =1000，定义为
- *     2000ms / 2ms 即 1000 个 OS tick @ 500Hz = 2s）。press_ticks 每
- *     个 20ms 扫描周期 +1，到达阈值时触发长按事件（仅触发一次，
- *     long_fired 防重复）。
+ *     2000ms / 2ms 即 1000 个 OS tick @ 500Hz = 2s）。press_ticks 每个扫描
+ *     周期累加 APP_KEY_DEBOUNCE_TICKS(=10) 个 OS tick，达到阈值时触发长按
+ *     事件（仅触发一次，long_fired 防重复；用 >= 以防扫描延迟漏判）。
  *   - 短按：释放时 press_ticks>0 且未触发长按 -> 短按事件（仅 Key2）。
  *   - 传输锁定（SysState_IsTransferLocked）：所有按键动作完全无响应
  *     （不鸣响、不投递事件）。锁定状态在动作触发时刻判定。
@@ -35,7 +35,7 @@ OS_Q g_key_event_q;
 /*---------------------------------------------------------------------------*/
 typedef struct {
     uint8_t  last_level;    /* 上次确认电平：0=按下 1=释放                  */
-    uint16_t press_ticks;   /* 按下持续的扫描周期计数（每周期 +1）          */
+    uint16_t press_ticks;   /* 按下累计 OS tick（每扫描 +DEBOUNCE_TICKS）  */
     uint8_t  long_fired;    /* 长按事件是否已触发（防止重复触发）           */
     uint8_t  debouncing;    /* 消抖中标志                                   */
     uint8_t  debounce_cnt;  /* 消抖计数                                     */
@@ -52,7 +52,7 @@ static KeyState_t g_key2;
 /* 处理流程：                                                                 */
 /*   1. 电平变化 -> 启动消抖（debouncing=1, debounce_cnt=1），更新 last_level */
 /*   2. 消抖中   -> debounce_cnt++; 达到 2 时确认电平，继续后续处理          */
-/*   3. 按下     -> press_ticks++; 达阈值且未触发 -> 长按事件（锁定则忽略）  */
+/*   3. 按下     -> press_ticks += DEBOUNCE_TICKS; >= 阈值且未触发 -> 长按  */
 /*   4. 释放     -> 若 press_ticks>0 且未长按 -> 短按事件（仅 Key2，锁定忽略)*/
 /*                 复位 press_ticks / long_fired                              */
 /*---------------------------------------------------------------------------*/
@@ -83,8 +83,10 @@ static void Key_Scan(KeyState_t *ks, uint8_t key_id)
 
     /* --- 3. 按下 --- */
     if (cur == 0u) {
-        ks->press_ticks++;
-        if (ks->press_ticks == APP_KEY_LONG_PRESS_TICKS && !ks->long_fired) {
+        /* 每 20ms 扫描累加 10 个 OS tick（APP_KEY_DEBOUNCE_TICKS），
+         * 使 press_ticks 单位与 APP_KEY_LONG_PRESS_TICKS（OS tick @500Hz）一致。 */
+        ks->press_ticks += APP_KEY_DEBOUNCE_TICKS;
+        if (ks->press_ticks >= APP_KEY_LONG_PRESS_TICKS && !ks->long_fired) {
             ks->long_fired = 1u;
             /* 传输锁定 -> 完全无响应（无声、无事件） */
             if (!SysState_IsTransferLocked()) {
