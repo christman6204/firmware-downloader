@@ -678,6 +678,16 @@
               <FileType>5</FileType>
               <FilePath>..\app\task_key.h</FilePath>
             </File>
+            <File>
+              <FileName>task_led_wdg.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\app\task_led_wdg.c</FilePath>
+            </File>
+            <File>
+              <FileName>task_led_wdg.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\app\task_led_wdg.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
