@@ -2,6 +2,53 @@
  *
  * 按键扫描任务实现。详见 task_key.h 顶部说明。
  *
+ * ===== 消抖时序图 =====
+ *
+ * 硬件电平:  ────┐         ┌──────────────
+ *               └─────────┘
+ *               ^         ^
+ * Scan周期(0):  │ 电平变化，启动消抖
+ *   last_level  │  ← cur (按下态 0)
+ *   debouncing=1│
+ *   debounce_cnt=1
+ *   return      │  (本周期不处理)
+ *               │
+ * Scan周期(1):  │ cur==last_level，消抖中
+ *   debounce_cnt=2 >= 2 → debouncing=0，确认按下
+ *   进入"按下"分支：
+ *     press_ticks += DEBOUNCE_TICKS (10)
+ *     if press_ticks < LONG_PRESS_TICKS (1000): 继续累计
+ *     return
+ *               │
+ * Scan周期(2-N):│ cur==last_level，非消抖中
+ *   按下分支：press_ticks += 10
+ *               │
+ * Scan周期(M):  │ press_ticks >= 1000 → 长按触发（仅一次，long_fired=1）
+ *   长按事件入队│
+ *               │
+ *   释放时刻:   └─ cur=1 != last_level=0 → 启动释放消抖
+ *   两个周期后确认释放：
+ *     若 press_ticks>0 && !long_fired → 短按 (仅 Key2)
+ *     press_ticks=0, long_fired=0 (复位)
+ *
+ * ===== 长按判定逻辑 =====
+ *
+ * 长按定义：按下持续 >= APP_KEY_LONG_PRESS_MS (2000ms) 后触发长按事件。
+ * 判定精度：每个 20ms 扫描周期累加 APP_KEY_DEBOUNCE_TICKS (10) 个 OS tick。
+ *   - 100 个周期 × 10 tick = 1000 tick = 2000ms (500Hz tick 下)
+ *   - 使用 >= 而非 == 比较，容忍扫描延迟导致的漏判。
+ *   - long_fired 标志防重复触发（按着不放只触发一次）。
+ *
+ * ===== 传输锁门控规则 =====
+ *
+ * 传输锁定（SysState_IsTransferLocked）为真时：
+ *   1. 所有按键动作完全无响应（无声、无事件投递）。
+ *   2. 锁定检查发生在动作触发时刻，而非扫描时刻 —— 即消抖确认后、
+ *      投递事件前才检查。这保证消抖状态机的 press_ticks/long_fired
+ *      仍然正常累计/复位，但事件队列不被污染。
+ *   3. 设计意图：下载进行中禁止按键干扰，防止数据源/固件类型中途切换
+ *      导致协议帧参数不一致。
+ *
  * 关键点：
  *   - 20ms 周期扫描，软件消抖（电平变化后等待 ~1 个 20ms 周期确认）。
  *   - 长按阈值 APP_KEY_LONG_PRESS_TICKS（app_cfg.h 中 =1000，定义为

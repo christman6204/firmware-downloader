@@ -7,6 +7,77 @@
  * 扇区缓存：复用 FATFS.win[512] + winsect（R0.15 FF_FS_TINY==0 模式）。
  *
  * 仅支持：根目录 8.3 短文件名、FA_READ 只读、512 字节扇区、单卷。
+ *
+ * ===== FAT16/32 BPB 布局图（Boot Sector 前 90 字节）=====
+ *
+ * Offset Size  Field           说明
+ * ------ ----- --------------- ---------------------------------------
+ *  0x00    3   BS_jmpBoot      跳转指令 (EB 3C 90)
+ *  0x03    8   BS_OEMName      OEM 名称（不用于挂载判定）
+ *  0x0B    2   BPB_BytsPerSec  每扇区字节数（本实现强制 == 512）
+ *  0x0D    1   BPB_SecPerClus  每簇扇区数（2^N，本实现支持任意值）
+ *  0x0E    2   BPB_RsvdSecCnt  保留扇区数（含引导扇区）
+ *  0x10    1   BPB_NumFATs     FAT 表个数（通常 1 或 2）
+ *  0x11    2   BPB_RootEntCnt  根目录条目数（FAT12/16 用；FAT32 = 0）
+ *  0x13    2   BPB_TotSec16    16-bit 总扇区数（< 65536 时有效，否则 0）
+ *  0x15    1   BPB_Media       媒体描述符（0xF8 = 硬盘）
+ *  0x16    2   BPB_FATSz16     16-bit FAT 大小（FAT12/16 用；FAT32 = 0）
+ *  0x18    2   BPB_SecPerTrk   每磁道扇区数（忽略）
+ *  0x1A    2   BPB_NumHeads    磁头数（忽略）
+ *  0x1C    4   BPB_HiddSec     隐藏扇区数（忽略）
+ *  0x20    4   BPB_TotSec32    32-bit 总扇区数（BPB_TotSec16==0 时生效）
+ *
+ * ---- FAT32 扩展 BPB（当 BPB_FATSz16 == 0 时存在）----
+ *  0x24    4   BPB_FATSz32     FAT 表大小（扇区数）
+ *  0x28    2   BPB_ExtFlags    FAT 镜像标志（忽略）
+ *  0x2A    2   BPB_FSVer       FS 版本（0）
+ *  0x2C    4   BPB_RootClus    根目录起始簇号（通常为 2）
+ *  0x30    2   BPB_FSInfo      FSInfo 扇区号（1）
+ *  0x32    2   BPB_BkBootSec   备份引导扇区（6）
+ *  0x34   12   BPB_Reserved    保留
+ *  0x40    1   BS_DrvNum       INT 13h 驱动器号
+ *  0x41    1   BS_Reserved1    保留
+ *  0x42    1   BS_BootSig      扩展引导签名（0x29）
+ *  0x43    4   BS_VolID        卷序列号（忽略）
+ *  0x47   11   BS_VolLab       卷标（忽略）
+ *  0x52    8   BS_FilSysType   文件系统类型（"FAT32   "）
+ *  0x1FE   2   BS_Sig          引导签名（0xAA55）
+ *
+ * ===== FAT 条目结构 =====
+ *
+ * FAT 表是簇号 → 下一簇号的映射数组，位于 fatbase 扇区。
+ *
+ * FAT16: 每条目 2 字节，小端，共 65536 条。
+ *   FAT[0] = 媒体描述符 (0xFFXX)
+ *   FAT[1] = EOC (0xFFFF)，保留簇
+ *   FAT[N] = 下一簇号 / 坏簇 (0xFFF7) / EOC (>= 0xFFF8)
+ *   EOC 阈值: 0xFFF8
+ *
+ * FAT32: 每条目 4 字节，低 28 位有效（掩码 0x0FFFFFFF）。
+ *   FAT[0] = 媒体描述符 (0x0FFFFFXX)
+ *   FAT[1] = EOC (0x0FFFFFFF)
+ *   FAT[N] = 下一簇号 / 坏簇 (0x0FFFFFF7) / EOC (>= 0x0FFFFFF8)
+ *   EOC 阈值: 0x0FFFFFF8
+ *
+ * 簇号 0 和 1 为保留，数据簇从 2 开始。
+ *
+ * ===== 簇链查找算法（walk_chain）=====
+ *
+ * 从 start_clust 出发，沿 FAT 链前进直到偏移量 ofs 落入当前簇内。
+ * 算法 O(链长) 而非 O(n^2)：
+ *
+ *   1. clust = start_clust
+ *   2. while ofs >= bytes_per_cluster:
+ *        next = FAT[clust]
+ *        if next >= EOC: return FR_INT_ERR  // 链意外结束
+ *        clust = next
+ *        ofs  -= bytes_per_cluster
+ *   3. sect = database + (clust-2)*csize + ofs/512
+ *
+ * 本实现每次 f_lseek 都从 start_clust 重新走链（而非从当前 clust 增量），
+ * 原因：1) 只读模式下不会修改 FAT；2) 简化 seek-back 实现；3) STM32F103
+ * CPU 72MHz 下，300KB 文件的链长 ~75 簇（SPC=8），最多 75 次 FAT 读，
+ * 每次 1 扇区（512B），开销约 75×0.5ms ≈ 37ms，可接受。
  */
 
 #include "ff.h"

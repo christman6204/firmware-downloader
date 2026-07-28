@@ -3,6 +3,42 @@
  * SD 卡应用层封装实现：使用 FatFs API (f_mount/f_open/f_read/f_close/f_size/
  * f_stat) 把下载状态机需要的"读 APP.bin"流程封装成简单状态接口。
  *
+ * ===== FatFs 封装说明 =====
+ *
+ * 本模块是对 Libraries/FatFs/ff.c 的薄封装，为上层（task_download.c）提供
+ * 不依赖 FatFs 头文件的简洁接口。封装决策：
+ *
+ * 1. 模块内部静态持有 FATFS + FIL 实例，上层只看到 uint8_t 错误码和
+ *    uint32_t 返回值，无需引用 ff.h。
+ * 2. SD_FileOpen 幂等：若文件已打开则直接返回 SD_OK（复用现有 FIL），
+ *    避免重复 open 把 fptr 重置为零。task_download 在 SD_CHECK 阶段
+ *    多次 Open/Close/Reopen 时利用此特性。
+ * 3. 错误码翻译：FatFs FRESULT → SD_ERR_* 枚举，统一错误语义。
+ *    FR_NOT_READY → SD_ERR_MOUNT，FR_NO_FILE → SD_ERR_NO_FILE 等。
+ * 4. ready 标志独立于文件 open 状态 —— SD_IsPresent 仅检查 SD 卡+卷就绪，
+ *    不检查文件是否打开。
+ * 5. Seek 支持：SD_FileSeek 调用 f_lseek，供下载状态机重试重定位使用。
+ *
+ * ===== 文件读取流程图 =====
+ *
+ *   上电 → SD_Init()
+ *          ├─ BSP_SPI2_Init()     // SPI2 硬件初始化
+ *          ├─ SD_SPI_Init()       // SD 卡 SPI 模式（CMD0→CMD8→ACMD41）
+ *          ├─ f_mount(&g_fs,"0:",1)  // 挂载 FAT 卷
+ *          └─ g_ready = 1
+ *
+ *   下载触发 → SD_FileOpen()
+ *              ├─ f_open(&g_file, "APP.bin", FA_READ|FA_OPEN_EXISTING)
+ *              └─ g_opened = 1
+ *
+ *   SEND_DATA 循环：
+ *     SD_FileGetSize() → f_size()
+ *     SD_FileRead(buf, seg_size, &br) → f_read()
+ *     SD_FileSeek(offset) → f_lseek()
+ *
+ *   传输结束/错误 → SD_FileClose()
+ *                   └─ f_close() + g_opened = 0
+ *
  * 设计：
  *   - 模块内部持有一个 FATFS 卷对象和一个 FIL 文件对象（静态分配，避免上层
  *     暴露 FatFs 类型）。

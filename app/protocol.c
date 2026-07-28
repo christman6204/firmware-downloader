@@ -2,9 +2,66 @@
  *
  * 下载器通信协议帧编解码实现。设计文档第 10 章。
  *
- * 字节序：
- *   - Length / CommID / DevID：大端（BE）
- *   - fw_ver / fw_size / fw_crc / seg_size / seg_crc / offset / verify_code：小端（LE）
+ * ===== 帧结构图 =====
+ *
+ *   0  1  2  3  4        5      6-7      8-9     10-13    14     15      16..15+N  16+N..19+N
+ *  +-------------+------+-------+--------+--------+--------+-------+--------+---------+------------+
+ *  |Header(4)    |CS(1) |NetType|Len(2BE)|CommID  |DevID   |HostID |MsgType |Cmd(N)   |Tail(4)     |
+ *  |FE EF ED FC  |      |       |       |(2BE)   |(4BE)   |       |       |         |FD EC F8 F1 |
+ *  +-------------+------+-------+--------+--------+--------+-------+--------+---------+------------+
+ *
+ *  CS = ~(sum of bytes[5..15+N]) & 0xFF       (对 11+N 字节求和后取反)
+ *  Len = 11 + N                                (正文长度，不含 header+checksum+tail)
+ *  N   = cmd_len                               (命令内容长度)
+ *
+ * 固定字段：
+ *   Header:  FE EF ED FC (小端写入 0xFCEDEFFE)
+ *   NetType: 3（APP_NET_TYPE）
+ *   HostID:  99（APP_HOST_ID）
+ *   MsgType: 1（APP_MSG_TYPE）
+ *   DevID:   999999 = 0x000F423F（APP_DEV_ID）
+ *   Tail:    FD EC F8 F1
+ *
+ * ===== 字节序规则表 =====
+ *
+ *   字段         字节序  C类型      所在帧偏移  说明
+ *   ------------ ------ ---------- ---------- ---------------------------
+ *   Header       N/A    uint8[4]   0-3       固定魔数，无字节序概念
+ *   Checksum     N/A    uint8      4         单字节，无字节序概念
+ *   NetType      N/A    uint8      5         单字节
+ *   Length       BE     uint16     6-7       正文长度 = 11+cmd_len
+ *   CommID       BE     uint16     8-9       自增计数器
+ *   DevID        BE     uint32     10-13     999999 = 0x000F423F
+ *   HostID       N/A    uint8      14        固定值 99
+ *   MsgType      N/A    uint8      15        固定值 1
+ *   CmdContent   mixed  uint8[]    16..     内部字段按各自规则
+ *   Tail         N/A    uint8[4]   16+N..    固定魔数
+ *
+ *  CmdContent 内部字段（LE=小端）：
+ *   fw_ver       LE     uint16     Cmd[2-3]  固件版本
+ *   fw_size      LE     uint32     Cmd[4-7]  固件总大小
+ *   fw_crc       LE     uint32     Cmd[8-11] 整包 CRC32
+ *   seg_size     LE     uint32     Cmd[4-7]  段大小 (DATA)
+ *   seg_crc      LE     uint32     Cmd[8-11] 段 CRC32 (DATA)
+ *   offset       LE     uint32     Cmd[12-15]段偏移 (DATA)
+ *   verify_code  LE     uint16     Cmd[12-13]验证码 58902 (START)
+ *   update_type  N/A    uint8      Cmd[1]    更新类型 (UPDATE)
+ *
+ * ===== 各命令字段表 =====
+ *
+ *   命令       Cmd大小  字段布局
+ *   --------- -------- ---------------------------------------------------
+ *   START      14B      [0]=CMD_START, [1]=fw_type, [2-3]=fw_ver(LE),
+ *                        [4-7]=fw_size(LE), [8-11]=fw_crc(LE),
+ *                        [12-13]=verify_code(LE)
+ *   DATA       16B+data [0]=CMD_DATA, [1]=fw_type, [2-3]=fw_ver(LE),
+ *                        [4-7]=seg_size(LE), [8-11]=seg_crc(LE),
+ *                        [12-15]=offset(LE), [16..]=raw data
+ *   COMPLETE   12B      [0]=CMD_COMPLETE, [1]=fw_type, [2-3]=fw_ver(LE),
+ *                        [4-7]=fw_size(LE), [8-11]=fw_crc(LE)
+ *   TERMINATE  8B       [0]=CMD_TERMINATE, [1]=0(reserved),
+ *                        [2-3]=fw_ver(LE), [4-7]=fw_size(LE)
+ *   UPDATE     2B       [0]=CMD_UPDATE, [1]=update_type
  *
  * 校验和（偏移 4）：对偏移 5..15+N 求和后取反（uint8）。
  *

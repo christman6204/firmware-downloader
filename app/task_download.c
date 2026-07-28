@@ -2,24 +2,74 @@
  *
  * 固件下载状态机任务实现（核心任务，Task 9）。详见 task_download.h 顶部说明。
  *
+ * ===== 状态机流程图（ASCII）=====
+ *
+ *   IDLE ───B2_SHORT──> SD_CHECK ───成功──> SEND_START ───OK──>
+ *    ^                    │ 失败              │  WAIT/超时
+ *    │                    v                   v   (重试)
+ *    │                  IDLE              SEND_START (重试)
+ *    │
+ *    │   SEND_START ───OK──> SEND_DATA ───OK(offset>=total)──>
+ *    │     │                  │  │  │
+ *    │     │                  │  │  └── 写错误(170/175/176/177)
+ *    │     │                  │  │         └── error_retry>6 -> TERMINATE
+ *    │     │                  │  │             否则: exp_offset 重定位
+ *    │     │                  │  └── VER_ERR(171) -> TERMINATE
+ *    │     │                  │  └── 超时/unknown -> retry
+ *    │     │                  └── retry_cnt>6 -> TERMINATE
+ *    │     │
+ *    │     └── WAIT/超时 -> TERMINATE (retry>6)
+ *    │     └── 其它错误 -> TERMINATE (立即)
+ *    │
+ *    │   SEND_COMPLETE ─OK──> SEND_UPDATE ─OK──> IDLE (成功)
+ *    │     │ 失败(重试)          │ 失败(蜂鸣)
+ *    │     └── retry>6 ->        └── IDLE
+ *    │         TERMINATE
+ *    │
+ *    └── TERMINATE ───发送Terminate帧+错误蜂鸣──> IDLE
+ *
+ * ===== 每个状态职责 =====
+ *
+ *   IDLE           : 阻塞等待按键事件队列，B2_SHORT 启动下载，B1_LONG 切换数据源，
+ *                    B2_LONG 切换固件类型。传输锁忽略所有按键（无声无事件）。
+ *
+ *   SD_CHECK       : 探测数据源（SD卡/MCU Flash），读取固件版本（文件前2字节）、
+ *                    整包 CRC32、文件大小。SD源需 close+reopen 重置 fptr，
+ *                    MCU Flash 源直接指针读取 300KB。
+ *
+ *   SEND_START     : 发送 Start 帧（fw_type + fw_ver + fw_size + fw_crc +
+ *                    verify_code 58902），等待应答。WAIT(100)=设备忙，延时1s重试；
+ *                    超时重试；其它错误立即终止（含鉴权失败）。
+ *
+ *   SEND_DATA      : 分段发送固件（每段 APP_SEGMENT_SIZE=256B），包含 seg_crc 和
+ *                    offset。SD源保证 fptr==offset（重试重定位用 f_lseek）。
+ *                    写错误(170/175/176/177)=段级重试(error_retry)，从设备期望地址
+ *                    重发；VER_ERR(171)=立即终止；超时=命令级重试(retry_cnt)。
+ *
+ *   SEND_COMPLETE  : 发送 Complete 帧（整包 fw_size + fw_crc），设备做最终校验。
+ *
+ *   SEND_UPDATE    : 发送 Update 帧（update_type=2/0），触发对端固件替换。
+ *                    无论成败均释放锁+关闭SD文件+回IDLE。
+ *
+ *   SEND_TERMINATE : 发送 Terminate 帧通知对端中止，释放所有资源回 IDLE。
+ *
+ * ===== 错误处理策略 =====
+ *
+ *   - 双层重试：retry_cnt（命令级，上限6）管理超时/WAIT/读失败；
+ *              error_retry（段级，上限6）管理写错误。
+ *   - 全局超时(6min)：每次 SEND_* 结尾检查，防止无限重试（ostick 自然回绕安全）。
+ *   - SD源重定位：f_lseek 替代 close+reopen+丢弃字节，O(1) 而非 O(n)。
+ *   - 期望地址越界保护：exp_offset >= fw_total_size 立即终止，防止 remaining 下溢。
+ *   - 版本不匹配：STATUS_VER_ERR 直接终止，不重试（固件版本冲突不可恢复）。
+ *
  * 关键点：
- *   - 状态机：IDLE -> SD_CHECK -> SEND_START -> SEND_DATA -> SEND_COMPLETE
- *             -> SEND_UPDATE -> IDLE；任一阶段错误超限 / 全局超时 ->
- *             SEND_TERMINATE -> IDLE。
  *   - DL_SendAndWait：发送一帧 -> 阻塞等待 g_usart1_rx_sem
  *     (APP_CMD_TIMEOUT_TICKS=500，即 1s @500Hz tick) -> 解析应答。
  *     超时返回 0xFF，解析失败返回 0xFE，成功返回 status 字段。
  *   - g_reply_content 必须为 FRAME_MAX_CMD_LEN (300) 字节：Proto_ParseReply
  *     会将其作为 in-place 临时缓冲复用（Task 5 review note）。
- *   - 全局超时：APP_GLOBAL_TIMEOUT_MIN(6) * 60 * 500 = 180000 tick = 6min。
- *     每次 SEND_* 状态结尾检查；IDLE/SD_CHECK 不计入（start_tick 在
- *     KEY_EVT_B2_SHORT 触发时记录）。
- *   - 重试计数：
- *       retry_cnt   —— 命令级（超时 / WAIT / 未知错误），上限 APP_CMD_MAX_RETRY(6)。
- *       error_retry —— 段级（170/175/176/177 写错误），上限 APP_ERROR_MAX_RETRY(6)。
  *   - 段大小 APP_SEGMENT_SIZE(256)；MCU Flash 源固定 300KB。
  *   - TX LED (PA12) 在每个数据段发送时翻转一次（BSP_LED_Toggle）。
- *   - 指针即数值：g_key_event_q 接收、g_buzzer_cmd_q 发送均按此约定。
  *
  * 字节序：fw_ver / fw_size / fw_crc / seg_size / seg_crc / offset 均小端；
  *         SD 卡前 2 字节 = fw_ver（小端）。

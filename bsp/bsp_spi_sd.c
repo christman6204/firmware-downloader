@@ -1,4 +1,55 @@
-/* bsp/bsp_spi_sd.c */
+/* bsp/bsp_spi_sd.c
+ *
+ * SD 卡 SPI 模式底层驱动：SPI2 初始化、SD 卡时序初始化、扇区读取。
+ *
+ * ===== SD 卡 SPI 模式初始化流程 =====
+ *
+ * 上电 → 发 >=74 个时钟 (10×0xFF) 让卡进入 SPI 模式
+ *   │
+ *   ├─ CMD0 (GO_IDLE_STATE): 复位卡到 Idle 态
+ *   │   格式: 0x40 0x00 0x00 0x00 0x00 0x95   (CRC7=0x95 对 CMD0 正确)
+ *   │   重试 100 次，等待 R1=0x01（Idle 状态）
+ *   │
+ *   ├─ CMD8 (SEND_IF_COND): 电压检测 + SD v2.0 识别
+ *   │   格式: 0x48 0x00 0x00 0x01 0xAA 0x87
+ *   │   参数: VHS=0x01 (2.7-3.6V), CheckPattern=0xAA
+ *   │   R1=0x01 → SD v2.0，读4字节R7体（电压窗口+回显0xAA）
+ *   │   R1=0x05 → SD v1.x（非法命令），HCS位被忽略，按标准容量初始化
+ *   │   其它值 → 不读R7体，由ACMD41兜底
+ *   │
+ *   ├─ CMD55 + ACMD41 (SD_SEND_OP_COND): 等待卡就绪
+ *   │   CMD55: 0x77 0x00 0x00 0x00 0x00 0xFF (APP_CMD前缀)
+ *   │   ACMD41: 0x69 0x40 0x00 0x00 0x00 0xFF
+ *   │   参数: HCS=1 (bit30, 支持SDHC)，OCR其余位=0
+ *   │   重试 1000 次，等待 R1=0x00（就绪，退出 Idle 态）
+ *   │   设计要点：CMD8 失败（v1.x卡）时仍执行 ACMD41，HCS位被忽略
+ *   │
+ *   └─ 成功 → SD_SPI_SetHighSpeed() 提速至 18MHz (PCLK2/2)
+ *             初始化期是 Prescaler_256 ≈ 140kHz (< 400kHz 规范要求)
+ *
+ * ===== CMD17 读块协议 =====
+ *
+ * 时序（每个字节以 SPI2_SendRecv 交换，发 0xFF 接收）：
+ *
+ *   1. CS=Low
+ *   2. 发 CMD17: 0x51  addr[31:24]  addr[23:16]  addr[15:8]  addr[7:0]  0xFF
+ *   3. 等待 R1=0x00 (OK)   ← 若 R1≠0x00 → 错误退出
+ *   4. 等待 Data Token 0xFE (最多等 65535 个 0xFF)
+ *   5. 读 512 字节数据块
+ *   6. 读 2 字节 CRC16（SPI 模式下忽略，但必须读走以推进总线）
+ *   7. CS=High + 1 字节 0xFF 虚拟时钟
+ *
+ * 错误码: 返回 1 = R1 非零，返回 2 = Data Token 超时。
+ *
+ * ===== SPI 配置要点 =====
+ *
+ *   - SPI2: SCK=PB13, MISO=PB14, MOSI=PB15
+ *   - 模式: CPOL=1 (空闲高), CPHA=1 (第二沿采样) → SPI_Mode 3
+ *   - 数据宽度: 8-bit
+ *   - 位序: MSB first
+ *   - NSS: 软件管理（CS 由 GPIO 手动控制，BSP_SD_CS_Low/High）
+ *   - 速度: 初始 ~140kHz (256分频) → 就绪后 18MHz (2分频)
+ */
 #include "bsp_spi_sd.h"
 #include "bsp_gpio.h"
 
