@@ -658,46 +658,6 @@
               <FileType>5</FileType>
               <FilePath>..\app\protocol.h</FilePath>
             </File>
-            <File>
-              <FileName>task_buzzer.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\app\task_buzzer.c</FilePath>
-            </File>
-            <File>
-              <FileName>task_buzzer.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\app\task_buzzer.h</FilePath>
-            </File>
-            <File>
-              <FileName>task_key.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\app\task_key.c</FilePath>
-            </File>
-            <File>
-              <FileName>task_key.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\app\task_key.h</FilePath>
-            </File>
-            <File>
-              <FileName>task_led_wdg.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\app\task_led_wdg.c</FilePath>
-            </File>
-            <File>
-              <FileName>task_led_wdg.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\app\task_led_wdg.h</FilePath>
-            </File>
-            <File>
-              <FileName>task_download.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\app\task_download.c</FilePath>
-            </File>
-            <File>
-              <FileName>task_download.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\app\task_download.h</FilePath>
-            </File>
           </Files>
         </Group>
         <Group>
@@ -962,6 +922,48 @@
         </Group>
         <Group>
           <GroupName>Task</GroupName>
+          <Files>
+            <File>
+              <FileName>task_download.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\app\task_download.h</FilePath>
+            </File>
+            <File>
+              <FileName>task_download.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\app\task_download.c</FilePath>
+            </File>
+            <File>
+              <FileName>task_led_wdg.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\app\task_led_wdg.h</FilePath>
+            </File>
+            <File>
+              <FileName>task_led_wdg.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\app\task_led_wdg.c</FilePath>
+            </File>
+            <File>
+              <FileName>task_key.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\app\task_key.h</FilePath>
+            </File>
+            <File>
+              <FileName>task_buzzer.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\app\task_buzzer.h</FilePath>
+            </File>
+            <File>
+              <FileName>task_key.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\app\task_key.c</FilePath>
+            </File>
+            <File>
+              <FileName>task_buzzer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\app\task_buzzer.c</FilePath>
+            </File>
+          </Files>
         </Group>
         <Group>
           <GroupName>mbedtls</GroupName>

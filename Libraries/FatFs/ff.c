@@ -371,17 +371,15 @@ FRESULT f_read(FIL *fp, void *buff, UINT btr, UINT *br)
 FRESULT f_lseek(FIL *fp, FSIZE_t ofs)
 {
     FATFS *fs;
-    DWORD  offset, bpc;
+    DWORD  offset;
 
     if (fp == (FIL *)0x0 || (fp->flag & FA_READ) == 0u) { return FR_INVALID_OBJECT; }
 
     fs  = fp->obj;
-    bpc = (DWORD)fs->csize * 512u;
-
     offset = (DWORD)ofs;
     if (offset > (DWORD)fp->fsize) { offset = (DWORD)fp->fsize; }
 
-    {
+    {   /* Re-walk 簇链从 start_clust 到新偏移 */
         DWORD clust, sect;
         FRESULT fr = walk_chain(fs, fp->start_clust, offset, &clust, &sect);
         if (fr != FR_OK) { return fr; }
@@ -435,18 +433,20 @@ FRESULT f_stat(const TCHAR *path, FILINFO *fno)
 
     /* 重建可读文件名（修剪尾随空格） */
     {
-        BYTE *n, *e;
-        memcpy(fno->fname, entry, 8u);
-        fno->fname[8u] = '\0';
-        n = fno->fname + 7u;
-        while (n >= fno->fname && *n == ' ') { *n-- = '\0'; }
-        n = fno->fname + strlen(fno->fname);
+        char *n, *e;
+        char  tmp_buf[13];
+        memcpy(tmp_buf, entry, 8u);
+        tmp_buf[8u] = '\0';
+        n = tmp_buf + 7u;
+        while (n >= tmp_buf && *n == ' ') { *n-- = '\0'; }
+        n = tmp_buf + strlen(tmp_buf);
         *n++ = '.';
-        e = entry + 8u;
+        e = (char *)entry + 8u;
         memcpy(n, e, 3u);
         n[3u] = '\0';
         n += 2u;
-        while (n >= fno->fname && *n == ' ') { *n-- = '\0'; }
+        while (n >= tmp_buf && *n == ' ') { *n-- = '\0'; }
+        memcpy(fno->fname, tmp_buf, 13u);
     }
 
     return FR_OK;

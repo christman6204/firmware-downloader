@@ -126,6 +126,7 @@ typedef struct {
     BYTE    flag;           /* File status flags */
     BYTE    err;            /* Abortable error */
     FSIZE_t fptr;           /* File read/write pointer (0 on f_open) */
+    FSIZE_t fsize;          /* File size in bytes (populated by f_open) */
     DWORD   clust;          /* Current cluster of fptr (valid once past cluster boundary) */
     DWORD   start_clust;    /* Starting cluster (for f_lseek: re-walk chain from here) */
     LBA_t   sect;           /* Current data sector */

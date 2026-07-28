@@ -32,10 +32,10 @@
 
 [region info]
 [load region] LR_VECTOR
-	[execution region] ER_VECTOR, 0x08000000, 0x00008000, 0x00004F1C [memory type] 2 [memory ID] 3
+	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x000090E8 [memory type] 2 [memory ID] 3
 
-	[execution region] RW_IRAM1, 0x20000000, 0x00010000, 0x00004390 [memory type] 1 [memory ID] 2
-		[ZI block] addr: 0x20000100, size: 0x00004290 (17040)
+	[execution region] RW_IRAM1, 0x20000000, 0x00010000, 0x00006878 [memory type] 1 [memory ID] 2
+		[ZI block] addr: 0x20000130, size: 0x00006748 (26440)
 
 
 [object name max length] 22
@@ -44,11 +44,18 @@
 [object in map file]
 [object name] app.o                   [path] ..\app\app.c
 [object name] bsp.o                   [path] ..\bsp\bsp.c
+[object name] bsp_gpio.o              [path] ..\bsp\bsp_gpio.c
+[object name] bsp_iwdg.o              [path] ..\bsp\bsp_iwdg.c
+[object name] bsp_spi_sd.o            [path] ..\bsp\bsp_spi_sd.c
+[object name] bsp_usart.o             [path] ..\bsp\bsp_usart.c
 [object name] core_cm3.o              [path] ..\Libraries\CMSIS\core_cm3.c
 [object name] cpu_a.o                 [path] ..\uc-cpu\ARM-Cortex-M3\RealView\cpu_a.asm
 [object name] cpu_core.o              [path] ..\uc-cpu\cpu_core.c
+[object name] crc32.o                 [path] ..\app\crc32.c
+[object name] diskio.o                [path] ..\Libraries\FatFs\diskio.c
+[object name] ff.o                    [path] ..\Libraries\FatFs\ff.c
 [object name] lib_mem.o               [path] ..\uc-lib\lib_mem.c
-[object name] os_app_hooks.o          [path] ..\app\os_app_hooks.c
+[object name] misc.o                  [path] ..\Libraries\FWlib\src\misc.c
 [object name] os_cfg_app.o            [path] ..\ucos-iii\Source\os_cfg_app.c
 [object name] os_core.o               [path] ..\ucos-iii\Source\os_core.c
 [object name] os_cpu_a.o              [path] ..\ucos-iii\Ports\ARM-Cortex-M3\Generic\RealView\os_cpu_a.s
@@ -59,6 +66,7 @@
 [object name] os_msg.o                [path] ..\ucos-iii\Source\os_msg.c
 [object name] os_mutex.o              [path] ..\ucos-iii\Source\os_mutex.c
 [object name] os_prio.o               [path] ..\ucos-iii\Source\os_prio.c
+[object name] os_q.o                  [path] ..\ucos-iii\Source\os_q.c
 [object name] os_sem.o                [path] ..\ucos-iii\Source\os_sem.c
 [object name] os_stat.o               [path] ..\ucos-iii\Source\os_stat.c
 [object name] os_task.o               [path] ..\ucos-iii\Source\os_task.c
@@ -66,11 +74,21 @@
 [object name] os_time.o               [path] ..\ucos-iii\Source\os_time.c
 [object name] os_tmr.o                [path] ..\ucos-iii\Source\os_tmr.c
 [object name] os_var.o                [path] ..\ucos-iii\Source\os_var.c
+[object name] protocol.o              [path] ..\app\protocol.c
+[object name] sd_card.o               [path] ..\app\sd_card.c
 [object name] startup_stm32f10x_hd.o  [path] ..\Libraries\CMSIS\startup\startup_stm32f10x_hd.s
 [object name] stm32f10x_gpio.o        [path] ..\Libraries\FWlib\src\stm32f10x_gpio.c
 [object name] stm32f10x_it.o          [path] ..\stm32f10x_it.c
+[object name] stm32f10x_iwdg.o        [path] ..\Libraries\FWlib\src\stm32f10x_iwdg.c
 [object name] stm32f10x_rcc.o         [path] ..\Libraries\FWlib\src\stm32f10x_rcc.c
+[object name] stm32f10x_spi.o         [path] ..\Libraries\FWlib\src\stm32f10x_spi.c
+[object name] stm32f10x_usart.o       [path] ..\Libraries\FWlib\src\stm32f10x_usart.c
+[object name] sys_state.o             [path] ..\app\sys_state.c
 [object name] system_stm32f10x.o      [path] ..\Libraries\CMSIS\system_stm32f10x.c
+[object name] task_buzzer.o           [path] ..\app\task_buzzer.c
+[object name] task_download.o         [path] ..\app\task_download.c
+[object name] task_key.o              [path] ..\app\task_key.c
+[object name] task_led_wdg.o          [path] ..\app\task_led_wdg.c
 
 [file path in keil project]
 [old name] startup_stm32f10x_hd.s  [type] 1   [path] ..\Libraries\CMSIS\startup\startup_stm32f10x_hd.s
@@ -102,7 +120,19 @@
 [old name] stm32f10x_it.c          [type] 1   [path] ..\stm32f10x_it.c
 [old name] app.c                   [type] 1   [path] ..\app\app.c
 [old name] os_app_hooks.c          [type] 1   [path] ..\app\os_app_hooks.c
+[old name] sd_card.c               [type] 1   [path] ..\app\sd_card.c
+[old name] sys_state.c             [type] 1   [path] ..\app\sys_state.c
+[old name] crc32.c                 [type] 1   [path] ..\app\crc32.c
+[old name] protocol.c              [type] 1   [path] ..\app\protocol.c
+[old name] task_buzzer.c           [type] 1   [path] ..\app\task_buzzer.c
+[old name] task_key.c              [type] 1   [path] ..\app\task_key.c
+[old name] task_led_wdg.c          [type] 1   [path] ..\app\task_led_wdg.c
+[old name] task_download.c         [type] 1   [path] ..\app\task_download.c
 [old name] bsp.c                   [type] 1   [path] ..\bsp\bsp.c
+[old name] bsp_gpio.c              [type] 1   [path] ..\bsp\bsp_gpio.c
+[old name] bsp_iwdg.c              [type] 1   [path] ..\bsp\bsp_iwdg.c
+[old name] bsp_usart.c             [type] 1   [path] ..\bsp\bsp_usart.c
+[old name] bsp_spi_sd.c            [type] 1   [path] ..\bsp\bsp_spi_sd.c
 [old name] cpu_core.c              [type] 1   [path] ..\uc-cpu\cpu_core.c
 [old name] cpu_a.asm               [type] 1   [path] ..\uc-cpu\ARM-Cortex-M3\RealView\cpu_a.asm
 [old name] cpu_c.c                 [type] 1   [path] ..\uc-cpu\ARM-Cortex-M3\RealView\cpu_c.c
@@ -136,58 +166,74 @@
 [old name] md.c                    [type] 1   [path] ..\Libraries\mbedtls\library\md.c
 [old name] platform.c              [type] 1   [path] ..\Libraries\mbedtls\library\platform.c
 [old name] platform_util.c         [type] 1   [path] ..\Libraries\mbedtls\library\platform_util.c
+[old name] ff.c                    [type] 1   [path] ..\Libraries\FatFs\ff.c
+[old name] diskio.c                [type] 1   [path] ..\Libraries\FatFs\diskio.c
 
 [record region info]
 [load region] LR_VECTOR
-	[execution region] ER_VECTOR, 0x08000000, 0x00008000, 0x000001A8 [type] 2 [ID] 3
-[load region] LR_APP_INFO
-	[execution region] ER_APP_INFO, 0x0800F800, 0x00000080, 0x00000000 [type] 2 [ID] 3
-[load region] LR_IROM1
-	[execution region] ER_IROM1, 0x08010000, 0x00048000, 0x00004D74 [type] 2 [ID] 3
+	[execution region] ER_VECTOR, 0x08000000, 0x00008000, 0x00004F1C [type] 2 [ID] 3
 	[execution region] RW_IRAM1, 0x20000000, 0x00010000, 0x00004390 [type] 1 [ID] 2
 -----------------------------------------------------------------------------------------------------------------------
                              FILE(s)                            |         RAM (byte)       |       FLASH (byte)       |
 -----------------------------------------------------------------------------------------------------------------------
-..\app\app.c():                                                 |        2000              |         320              |
-..\bsp\bsp.c():                                                 |           0              |         150              |
+..\app\app.c():                                                 |        9256  [+7256]     |         600  [+280]      |
+..\bsp\bsp.c():                                                 |           0              |         160  [+10]       |
+..\bsp\bsp_gpio.c():                                            |           0  [NEW]       |         360  [NEW]       |
+..\bsp\bsp_iwdg.c():                                            |           0  [NEW]       |          42  [NEW]       |
+..\bsp\bsp_spi_sd.c():                                          |           0  [NEW]       |         542  [NEW]       |
+..\bsp\bsp_usart.c():                                           |         555  [NEW]       |         627  [NEW]       |
 ..\Libraries\CMSIS\core_cm3.c():                                |           0              |           0              |
 ..\uc-cpu\ARM-Cortex-M3\RealView\cpu_a.asm():                   |           0              |          52              |
 ..\uc-cpu\cpu_core.c():                                         |          44              |         568              |
+..\app\crc32.c():                                               |           4  [NEW]       |        1166  [NEW]       |
+..\Libraries\FatFs\diskio.c():                                  |           1  [NEW]       |          57  [NEW]       |
+..\Libraries\FatFs\ff.c():                                      |           0  [NEW]       |          94  [NEW]       |
 ..\uc-lib\lib_mem.c():                                          |        4172              |         192              |
-..\app\os_app_hooks.c():                                        |           0              |           0              |
+..\Libraries\FWlib\src\misc.c():                                |           0  [NEW]       |         112  [NEW]       |
 ..\ucos-iii\Source\os_cfg_app.c():                              |        8432              |         166              |
-..\ucos-iii\Source\os_core.c():                                 |           0              |        3036              |
+..\ucos-iii\Source\os_core.c():                                 |           0              |        3172  [+136]      |
 ..\ucos-iii\Ports\ARM-Cortex-M3\Generic\RealView\os_cpu_a.s():  |           0              |         132              |
 ..\ucos-iii\Ports\ARM-Cortex-M3\Generic\RealView\os_cpu_c.c():  |           4              |         664              |
-..\ucos-iii\Source\os_dbg.c():                                  |           0              |         768              |
+..\ucos-iii\Source\os_dbg.c():                                  |           0              |         792  [+24]       |
 ..\ucos-iii\Source\os_flag.c():                                 |           0              |         746              |
-..\ucos-iii\Source\os_int.c():                                  |           0              |        1136              |
-..\ucos-iii\Source\os_msg.c():                                  |           0              |         466              |
-..\ucos-iii\Source\os_mutex.c():                                |           0              |          24              |
+..\ucos-iii\Source\os_int.c():                                  |           0              |        1176  [+40]       |
+..\ucos-iii\Source\os_msg.c():                                  |           0              |         570  [+104]      |
+..\ucos-iii\Source\os_mutex.c():                                |           0              |        1784  [+1760]     |
 ..\ucos-iii\Source\os_prio.c():                                 |           4              |         140              |
-..\ucos-iii\Source\os_sem.c():                                  |           0              |         432              |
-..\ucos-iii\Source\os_stat.c():                                 |           0              |        1676              |
+..\ucos-iii\Source\os_q.c():                                    |           0  [NEW]       |        1464  [NEW]       |
+..\ucos-iii\Source\os_sem.c():                                  |           0              |        1400  [+968]      |
+..\ucos-iii\Source\os_stat.c():                                 |           0              |        1772  [+96]       |
 ..\ucos-iii\Source\os_task.c():                                 |           0              |        5460              |
 ..\ucos-iii\Source\os_tick.c():                                 |           0              |        1348              |
-..\ucos-iii\Source\os_time.c():                                 |           0              |         960              |
+..\ucos-iii\Source\os_time.c():                                 |           0              |        1020  [+60]       |
 ..\ucos-iii\Source\os_tmr.c():                                  |           0              |         812              |
-..\ucos-iii\Source\os_var.c():                                  |        1588              |         192              |
+..\ucos-iii\Source\os_var.c():                                  |        1596  [+8]        |         200  [+8]        |
+..\app\protocol.c():                                            |           2  [NEW]       |        1132  [NEW]       |
+..\app\sd_card.c():                                             |         582  [NEW]       |         358  [NEW]       |
 ..\Libraries\CMSIS\startup\startup_stm32f10x_hd.s():            |        1024              |         340              |
-..\Libraries\FWlib\src\stm32f10x_gpio.c():                      |           0              |           8              |
-..\stm32f10x_it.c():                                            |           0              |          22              |
-..\Libraries\FWlib\src\stm32f10x_rcc.c():                       |          20              |         232              |
+..\Libraries\FWlib\src\stm32f10x_gpio.c():                      |           0              |         448  [+440]      |
+..\stm32f10x_it.c():                                            |           0              |          38  [+16]       |
+..\Libraries\FWlib\src\stm32f10x_iwdg.c():                      |           0  [NEW]       |          68  [NEW]       |
+..\Libraries\FWlib\src\stm32f10x_rcc.c():                       |          20              |         296  [+64]       |
+..\Libraries\FWlib\src\stm32f10x_spi.c():                       |           0  [NEW]       |         112  [NEW]       |
+..\Libraries\FWlib\src\stm32f10x_usart.c():                     |           0  [NEW]       |         442  [NEW]       |
+..\app\sys_state.c():                                           |          47  [NEW]       |         379  [NEW]       |
 ..\Libraries\CMSIS\system_stm32f10x.c():                        |           0              |         328              |
+..\app\task_buzzer.c():                                         |          48  [NEW]       |         174  [NEW]       |
+..\app\task_download.c():                                       |         876  [NEW]       |        1600  [NEW]       |
+..\app\task_key.c():                                            |          64  [NEW]       |         304  [NEW]       |
+..\app\task_led_wdg.c():                                        |           0  [NEW]       |         132  [NEW]       |
 -----------------------------------------------------------------------------------------------------------------------
 [memory print mode]: 0
 LR_VECTOR
         RAM 1              [0x20000000 | 0x00010000 (65536)]
-                [zi start] 1   [zi end] 13
-                RW_IRAM1   [0x20000000]|¡ö¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ_____________________________________| (  16.8 KB /  64.0 KB )  26.4%  
+                [zi start] 1   [zi end] 20
+                RW_IRAM1   [0x20000000]|¡ö¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ______________________________| (  26.1 KB /  64.0 KB )  40.8%  [+9448]
  
         FLASH 1            [0x08000000 | 0x00080000 (524288)]
-                ER_VECTOR  [0x08000000]|¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö____________________| (  19.7 KB /  32.0 KB )  61.8%  [+19828]
+                ER_VECTOR  [0x08000000]|¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö____________________________________| (  36.2 KB / 128.0 KB )  28.3%  [+16844]
  
 [htm file path] D:\claude\downloader\downloader\RVMDK\D:\output\MDK\IL-800\DEBUG\IL_800_debug.htm
 =============================================================================================================================
 
-run time: 0.041 s
+run time: 0.073 s
