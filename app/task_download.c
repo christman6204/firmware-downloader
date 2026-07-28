@@ -332,6 +332,14 @@ void AppTask_Download(void *p_arg)
             offset      = 0u;
             retry_cnt   = 0u;
             error_retry = 0u;
+
+            BSP_USART2_Printf("[DWN] Starting download: src=%s, fw=%s, ver=0x%04X, size=%lu, crc=0x%08lX\r\n",
+                              (src == DATA_SRC_SD_CARD) ? "SD_CARD" : "MCU_FLASH",
+                              (fw_type_code == FW_TYPE_NORMAL) ? "Normal" : "Factory",
+                              (unsigned int)fw_ver,
+                              (unsigned long)fw_total_size,
+                              (unsigned long)fw_crc);
+
             state = DL_STATE_SEND_START;
             break;
         }
@@ -341,20 +349,29 @@ void AppTask_Download(void *p_arg)
         /*-------------------------------------------------------------------*/
         case DL_STATE_SEND_START:
         {
+            BSP_USART2_Printf("[DWN] Sending start cmd...\r\n");
+
             Proto_BuildStartCmd(fw_type_code, fw_ver, fw_total_size, fw_crc,
                                 g_tx_buf, &len);
             status = DL_SendAndWait(g_tx_buf, len, &rtype, &status,
                                     g_reply_content, &clen);
 
             if (status == STATUS_START_OK) {
+                BSP_USART2_Printf("[DWN] Start: OK (%u)\r\n",
+                                  (unsigned int)STATUS_START_OK);
                 state      = DL_STATE_SEND_DATA;
                 retry_cnt  = 0u;
                 error_retry = 0u;
             }
             else if (status == STATUS_WAIT) {
-                /* 设备忙：等待 1s 后重试 */
                 retry_cnt++;
+                BSP_USART2_Printf("[DWN] Start: WAIT (%u) retry %u/%u\r\n",
+                                  (unsigned int)STATUS_WAIT,
+                                  (unsigned int)retry_cnt,
+                                  (unsigned int)APP_CMD_MAX_RETRY);
+                /* 设备忙：等待 1s 后重试 */
                 if (retry_cnt > APP_CMD_MAX_RETRY) {
+                    BSP_USART2_Printf("[DWN] Retries exhausted, terminating\r\n");
                     state = DL_STATE_SEND_TERMINATE;
                 } else {
                     OSTimeDlyHMSM(0u, 0u, 1u, 0u,
@@ -362,18 +379,25 @@ void AppTask_Download(void *p_arg)
                 }
             }
             else if (status == 0xFFu) {
-                /* 命令超时 */
                 retry_cnt++;
+                BSP_USART2_Printf("[DWN] Start: TIMEOUT retry %u/%u\r\n",
+                                  (unsigned int)retry_cnt,
+                                  (unsigned int)APP_CMD_MAX_RETRY);
+                /* 命令超时 */
                 if (retry_cnt > APP_CMD_MAX_RETRY) {
+                    BSP_USART2_Printf("[DWN] Retries exhausted, terminating\r\n");
                     state = DL_STATE_SEND_TERMINATE;
                 }
             }
             else {
+                BSP_USART2_Printf("[DWN] Start: unexpected status %u, terminating\r\n",
+                                  (unsigned int)status);
                 /* 其它错误 / 解析失败 (0xFE) / 鉴权失败等：直接终止 */
                 state = DL_STATE_SEND_TERMINATE;
             }
 
             if (DL_CheckGlobalTimeout(start_tick)) {
+                BSP_USART2_Printf("[DWN] GLOBAL TIMEOUT (elapsed > 6min), terminating\r\n");
                 state = DL_STATE_SEND_TERMINATE;
             }
             break;
@@ -432,11 +456,18 @@ void AppTask_Download(void *p_arg)
 
             BSP_LED_Toggle(LED_TX_PORT, LED_TX_PIN);   /* TX 活动指示 */
 
+            BSP_USART2_Printf("[DWN] Seg 0x%08lX: %luB (%.1f%%)\r\n",
+                              (unsigned long)offset, (unsigned long)seg_size,
+                              (float)(offset * 100.0 / (double)fw_total_size));
+
             status = DL_SendAndWait(g_tx_buf, len, &rtype, &status,
                                     g_reply_content, &clen);
 
             if (status == STATUS_DATA_OK) {
                 offset     += seg_size;    /* sd_fptr == offset 重新对齐 */
+                BSP_USART2_Printf("[DWN] Seg 0x%08lX: OK (addr=0x%08lX)\r\n",
+                                  (unsigned long)(offset - seg_size),
+                                  (unsigned long)offset);
                 retry_cnt   = 0u;
                 error_retry = 0u;
                 if (offset >= fw_total_size) {
@@ -447,10 +478,17 @@ void AppTask_Download(void *p_arg)
                   || status == STATUS_WRITE_FAIL
                   || status == STATUS_NO_PERM
                   || status == STATUS_WRITE_FAIL2) {
+                error_retry++;
+                BSP_USART2_Printf("[DWN] Seg 0x%08lX: ERR %u, retry %u/%u @ 0x%08lX\r\n",
+                                  (unsigned long)offset,
+                                  (unsigned int)status,
+                                  (unsigned int)error_retry,
+                                  (unsigned int)APP_ERROR_MAX_RETRY,
+                                  (unsigned long)offset);
                 /* 写错误：从设备期望地址重试（无期望地址则重试当前段）。
                    sd_fptr 已越过 offset，下轮 SEND_DATA 顶部会重定位。 */
-                error_retry++;
                 if (error_retry > APP_ERROR_MAX_RETRY) {
+                    BSP_USART2_Printf("[DWN] Retries exhausted, terminating\r\n");
                     state = DL_STATE_SEND_TERMINATE;
                 }
                 else if (clen >= 4u) {
@@ -469,25 +507,39 @@ void AppTask_Download(void *p_arg)
                 /* clen < 4：offset 不变，重试同一段（下轮重定位） */
             }
             else if (status == STATUS_VER_ERR) {
+                BSP_USART2_Printf("[DWN] Seg 0x%08lX: VERSION MISMATCH, terminating\r\n",
+                                  (unsigned long)offset);
                 /* 版本不匹配：直接终止 */
                 state = DL_STATE_SEND_TERMINATE;
             }
             else if (status == 0xFFu) {
                 /* 命令超时：offset 不变，下轮重定位重读同一段 */
                 retry_cnt++;
+                BSP_USART2_Printf("[DWN] Seg 0x%08lX: TIMEOUT retry %u/%u\r\n",
+                                  (unsigned long)offset,
+                                  (unsigned int)retry_cnt,
+                                  (unsigned int)APP_CMD_MAX_RETRY);
                 if (retry_cnt > APP_CMD_MAX_RETRY) {
+                    BSP_USART2_Printf("[DWN] Retries exhausted, terminating\r\n");
                     state = DL_STATE_SEND_TERMINATE;
                 }
             }
             else {
                 /* 其它错误 / 解析失败：命令级重试 */
                 retry_cnt++;
+                BSP_USART2_Printf("[DWN] Seg 0x%08lX: unexpected status %u, retry %u/%u\r\n",
+                                  (unsigned long)offset,
+                                  (unsigned int)status,
+                                  (unsigned int)retry_cnt,
+                                  (unsigned int)APP_CMD_MAX_RETRY);
                 if (retry_cnt > APP_CMD_MAX_RETRY) {
+                    BSP_USART2_Printf("[DWN] Retries exhausted, terminating\r\n");
                     state = DL_STATE_SEND_TERMINATE;
                 }
             }
 
             if (DL_CheckGlobalTimeout(start_tick)) {
+                BSP_USART2_Printf("[DWN] GLOBAL TIMEOUT (elapsed > 6min), terminating\r\n");
                 state = DL_STATE_SEND_TERMINATE;
             }
             break;
@@ -498,23 +550,31 @@ void AppTask_Download(void *p_arg)
         /*-------------------------------------------------------------------*/
         case DL_STATE_SEND_COMPLETE:
         {
+            BSP_USART2_Printf("[DWN] Sending complete cmd...\r\n");
+
             Proto_BuildCompleteCmd(fw_type_code, fw_ver, fw_total_size, fw_crc,
                                    g_tx_buf, &len);
             status = DL_SendAndWait(g_tx_buf, len, &rtype, &status,
                                     g_reply_content, &clen);
 
             if (status == STATUS_COMPLETE_OK) {
+                BSP_USART2_Printf("[DWN] Complete: OK (%u)\r\n",
+                                  (unsigned int)STATUS_COMPLETE_OK);
                 state      = DL_STATE_SEND_UPDATE;
                 retry_cnt  = 0u;
             }
             else {
+                BSP_USART2_Printf("[DWN] Complete: FAIL status=%u\r\n",
+                                  (unsigned int)status);
                 retry_cnt++;
                 if (retry_cnt > APP_CMD_MAX_RETRY) {
+                    BSP_USART2_Printf("[DWN] Retries exhausted, terminating\r\n");
                     state = DL_STATE_SEND_TERMINATE;
                 }
             }
 
             if (DL_CheckGlobalTimeout(start_tick)) {
+                BSP_USART2_Printf("[DWN] GLOBAL TIMEOUT (elapsed > 6min), terminating\r\n");
                 state = DL_STATE_SEND_TERMINATE;
             }
             break;
@@ -529,14 +589,21 @@ void AppTask_Download(void *p_arg)
                                   ? FW_UPDATE_FACTORY
                                   : FW_UPDATE_NORMAL;
 
+            BSP_USART2_Printf("[DWN] Sending update cmd (type=%u)...\r\n",
+                              (unsigned int)update_type);
+
             Proto_BuildUpdateCmd(update_type, g_tx_buf, &len);
             status = DL_SendAndWait(g_tx_buf, len, &rtype, &status,
                                     g_reply_content, &clen);
 
             if (status == STATUS_UPDATE_OK) {
+                BSP_USART2_Printf("[DWN] Update: OK (%u) - SUCCESS!\r\n",
+                                  (unsigned int)STATUS_UPDATE_OK);
                 DL_Beep(BUZZER_CMD_OK);      /* 传输完成 */
             }
             else {
+                BSP_USART2_Printf("[DWN] Update: FAIL status=%u\r\n",
+                                  (unsigned int)status);
                 DL_Beep(BUZZER_CMD_ERROR);   /* 更新失败 */
             }
 
@@ -544,6 +611,7 @@ void AppTask_Download(void *p_arg)
             if (src == DATA_SRC_SD_CARD) {
                 SD_FileClose();
             }
+            BSP_USART2_Printf("[DWN] Transfer ended, lock released\r\n");
             state = DL_STATE_IDLE;
             break;
         }
@@ -553,6 +621,9 @@ void AppTask_Download(void *p_arg)
         /*-------------------------------------------------------------------*/
         case DL_STATE_SEND_TERMINATE:
         {
+            BSP_USART2_Printf("[DWN] Terminating transfer (ver=0x%04X, size=%lu)\r\n",
+                              (unsigned int)fw_ver, (unsigned long)fw_total_size);
+
             DL_SendTerminate(fw_ver, fw_total_size);
             DL_Beep(BUZZER_CMD_ERROR);
 
@@ -560,6 +631,7 @@ void AppTask_Download(void *p_arg)
             if (src == DATA_SRC_SD_CARD) {
                 SD_FileClose();
             }
+            BSP_USART2_Printf("[DWN] Transfer ended, lock released\r\n");
             state = DL_STATE_IDLE;
             break;
         }
