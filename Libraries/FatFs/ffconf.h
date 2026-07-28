@@ -15,7 +15,7 @@
  * 用户用官方 ff.c 替换桩时无需修改本文件。
  */
 #ifndef _FFCONF
-#define _FFCONF  01500u   /* FatFs R0.15 */
+#define FFCONF_DEF  80286   /* FatFs R0.15 — 必须匹配 ff.h 的 FF_DEFINED */
 
 /*---------------------------------------------------------------------------/
 / Function Configurations

@@ -1,32 +1,33 @@
 /* Libraries/FatFs/integer.h
  *
- * FatFs R0.15 风格的整数类型别名。
+ * FatFs 整数类型别名。
  *
- * 注意：本文件为占位实现，供本任务桩 ff.c 与 diskio.c 编译。
- * 当用户从 FatFs R0.15 源码包替换 ff.c 时，可一并替换本文件为
- * 官方 integer.h（两者类型定义一致，无冲突）。
+ * 官方 ff.h（R0.15 起）通过 C99 <stdint.h> 内联定义 UINT/BYTE/WORD/DWORD/
+ * QWORD/WCHAR。当 ff.h 先于本文件被包含时（FF_DEFINED 已定义），跳过所有
+ * 类型定义避免重定义警告。
+ * 当 diskio.c 仅含本文件（未先含 ff.h）时，本文件提供兼容类型。
  */
 #ifndef _INTEGER
 #define _INTEGER
 
 #include <stdint.h>
 
-typedef int             INT;
+#ifndef FF_DEFINED
+/* 官方 ff.h 未包含时才定义（diskio.h → integer.h 但未 → ff.h 的场景） */
 typedef unsigned int    UINT;
+typedef unsigned char   BYTE;
+typedef unsigned short  WORD;
+typedef unsigned long   DWORD;
+typedef uint64_t        QWORD;
+typedef unsigned short  WCHAR;
+#endif
 
+/* 以下类型官方 ff.h 不定义，总是可用 */
+typedef int             INT;
 typedef signed char     CHAR;
 typedef unsigned char   UCHAR;
-typedef unsigned char   BYTE;
-
 typedef short           SHORT;
 typedef unsigned short  USHORT;
-typedef unsigned short  WORD;
-typedef unsigned short  WCHAR;
-
 typedef long            LONG;
-typedef unsigned long   DWORD;
-
-/* 64-bit 整数（FF_LBA64 / 大文件场景使用；ARMCC 与 GCC 均原生支持） */
-typedef uint64_t        QWORD;
 
 #endif /* _INTEGER */

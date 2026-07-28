@@ -1874,9 +1874,9 @@
       </Doc>
       <Doc>
         <Name>..\bsp\bsp.c</Name>
-        <ColumnNumber>20</ColumnNumber>
+        <ColumnNumber>2</ColumnNumber>
         <TopLine>23</TopLine>
-        <CurrentLine>69</CurrentLine>
+        <CurrentLine>29</CurrentLine>
         <Folding>1</Folding>
         <ContractedFolders></ContractedFolders>
         <PaneID>0</PaneID>
