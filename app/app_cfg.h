@@ -1,90 +1,70 @@
-/*
-*********************************************************************************************************
-*                                      APPLICATION CONFIGURATION
-*
-*                                       STM32F103VE + uC/OS-III
-*
-* Filename      : app_cfg.h
-* Description   : 干净底座的应用层配置（原产品业务参数已剥离归档至 old_product/）
-*                 后续 OTA / 数据采集相关的任务优先级、栈大小在此添加
-*********************************************************************************************************
-*/
-
+/* app/app_cfg.h - 完整替换 */
 #ifndef  __APP_CFG_H__
 #define  __APP_CFG_H__
 
+/* ==================== 任务优先级 ==================== */
+/* 内核占用: Tick=10, Tmr=22, Stat=23, Idle=31 */
+#define  APP_TASK_START_PRIO          26u
+#define  APP_TASK_KEY_PRIO            25u
+#define  APP_TASK_BUZZER_PRIO         24u
+#define  APP_TASK_LED_WDG_PRIO        28u
+#define  APP_TASK_DOWNLOAD_PRIO       20u
 
-/*
-*********************************************************************************************************
-*                                       MODULE ENABLE / DISABLE
-*********************************************************************************************************
-*/
+/* ==================== 任务栈（CPU_STK = 4字节） ==================== */
+#define  APP_TASK_START_STK_SIZE      272u   /* 1088B */
+#define  APP_TASK_KEY_STK_SIZE        256u   /* 1024B */
+#define  APP_TASK_BUZZER_STK_SIZE     256u   /* 1024B */
+#define  APP_TASK_LED_WDG_STK_SIZE    256u   /* 1024B */
+#define  APP_TASK_DOWNLOAD_STK_SIZE   1024u  /* 4096B */
 
-#define  APP_CFG_SERIAL_EN                          DEF_DISABLED
+/* ==================== IPC 参数 ==================== */
+#define  APP_KEY_Q_SIZE               8u
+#define  APP_BUZZER_Q_SIZE            8u
 
+/* ==================== 按键参数 ==================== */
+#define  APP_KEY_DEBOUNCE_MS          20u
+#define  APP_KEY_LONG_PRESS_MS        2000u
+/* 500Hz tick -> 2ms/tick */
+#define  APP_KEY_DEBOUNCE_TICKS       (APP_KEY_DEBOUNCE_MS / 2u)    /* 10 */
+#define  APP_KEY_LONG_PRESS_TICKS     (APP_KEY_LONG_PRESS_MS / 2u)  /* 1000 */
 
-/*
-*********************************************************************************************************
-*                                            TASK PRIORITIES
-*               0=最高 31=最低。内核占用：Tick=10, Tmr=22, Stat=23, Idle=31
-*               应用任务在 24~29 区间，避免与内核任务冲突
-*********************************************************************************************************
-*/
+/* ==================== 传输参数 ==================== */
+#define  APP_SEGMENT_SIZE             256u
+#define  APP_CMD_TIMEOUT_MS           1000u
+#define  APP_CMD_TIMEOUT_TICKS        (APP_CMD_TIMEOUT_MS / 2u)     /* 500 */
+#define  APP_CMD_MAX_RETRY            6u
+#define  APP_GLOBAL_TIMEOUT_MIN       6u
+#define  APP_ERROR_MAX_RETRY          6u
+#define  APP_FRAME_MAX_DATA           300u
 
-#define  APP_TASK_START_PRIO                        26      /* 起始任务                                  */
-#define  APP_TASK_BLINK_PRIO                        28      /* 闪灯测试任务（验证用，后续可删）            */
+/* ==================== Flash 地址（设计文档） ==================== */
+#define  APP_FLASH_BASE               0x08000000u
+#define  APP_FLASH_BOOT_SIZE          0x20000u     /* 128KB */
+#define  APP_FLASH_APP_ADDR           0x08020000u
+#define  APP_FLASH_APP_MAX_SIZE       0x4B000u     /* 300KB */
 
-/* 以下为后续 OTA/数据采集任务预留优先级（暂未创建）*/
-#define  APP_TASK_OTA_PRIO                          12      /* OTA 任务（较高优先级，升级期间抢占）       */
-#define  APP_TASK_DATA_REPORT_PRIO                  14      /* 数据采集上报任务                          */
-#define  APP_TASK_MONITOR_PRIO                      18      /* 实时监控响应任务                          */
+/* ==================== SD 卡 ==================== */
+#define  APP_SD_BIN_FILENAME          "APP.bin"
 
+/* ==================== 协议常量 ==================== */
+#define  APP_DEV_ID                   999999u
+#define  APP_HOST_ID                  99u
+#define  APP_NET_TYPE                 3u
+#define  APP_MSG_TYPE                 1u
+#define  APP_VERIFY_CODE              58902u
 
-/*
-*********************************************************************************************************
-*                                            TASK STACK SIZES
-*               单位 CPU_STK（4 字节）。272 = 1088 字节
-*********************************************************************************************************
-*/
+/* ==================== 固件类型编码 ==================== */
+#define  FW_TYPE_NORMAL               0u   /* 传输命令 */
+#define  FW_TYPE_FACTORY              1u
+#define  FW_UPDATE_FACTORY            0u   /* 更新命令（故意不同） */
+#define  FW_UPDATE_NORMAL             2u
 
-#define  APP_TASK_START_STK_SIZE                    272     /* 起始任务栈                                */
-#define  APP_TASK_BLINK_STK_SIZE                    128     /* 闪灯测试任务栈 512B                        */
-
-/* 以下为后续任务预留栈（暂未使用）*/
-#define  APP_TASK_OTA_STK_SIZE                      512     /* OTA 任务栈 2KB（AES/HMAC 缓冲较大）        */
-#define  APP_TASK_DATA_REPORT_STK_SIZE              384     /* 数据上报任务栈 1.5KB                      */
-#define  APP_TASK_MONITOR_STK_SIZE                  384     /* 监控响应任务栈 1.5KB                      */
-
-
-/*
-*********************************************************************************************************
-*                                    BSP CONFIGURATION
-*********************************************************************************************************
-*/
-
-#define  BSP_CFG_SER_COMM_SEL                       BSP_SER_COMM_UART_02
-#define  BSP_CFG_TS_TMR_SEL                         2       /* TIM2 用作 CPU 时间戳                       */
-
-
-/*
-*********************************************************************************************************
-*                                     TRACE / DEBUG CONFIGURATION
-*********************************************************************************************************
-*/
-
-#define  APP_TRACE_LEVEL                            TRACE_LEVEL_INFO
-#define  APP_TRACE                                  BSP_Ser_Printf
-
-#define  APP_TRACE_INFO(x)            ((APP_TRACE_LEVEL >= TRACE_LEVEL_INFO)  ? (void)(APP_TRACE x) : (void)0)
-
-
-/*
-*********************************************************************************************************
-*                                     DEVICE IDENTIFICATION
-*********************************************************************************************************
-*/
-
-#define  MCU_ID_ADDR                                0x1FFFF7E8      /* STM32F103 唯一 ID 寄存器地址      */
-
+/* ==================== 调试 ==================== */
+#define  BSP_CFG_SER_COMM_SEL         BSP_SER_COMM_UART_02
+#define  BSP_CFG_TS_TMR_SEL           2
+#define  APP_TRACE_LEVEL              TRACE_LEVEL_INFO
+#define  APP_TRACE                    BSP_Ser_Printf
+#define  APP_TRACE_INFO(x)  ((APP_TRACE_LEVEL >= TRACE_LEVEL_INFO) ? (void)(APP_TRACE x) : (void)0)
+#define  MCU_ID_ADDR                  0x1FFFF7E8u
 
 #endif

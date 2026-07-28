@@ -66,7 +66,7 @@
 
 
                                              /* --------------------------- MESSAGE QUEUES -------------------------- */
-#define OS_CFG_Q_EN                     0u   //使能/禁用消息队列
+#define OS_CFG_Q_EN                     1u   //使能/禁用消息队列
 #define OS_CFG_Q_DEL_EN                 1u   //使能/禁用 OSQDel() 函数
 #define OS_CFG_Q_FLUSH_EN               1u   //使能/禁用 OSQFlush() 函数
 #define OS_CFG_Q_PEND_ABORT_EN          1u   //使能/禁用 OSQPendAbort() 函数
