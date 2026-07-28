@@ -668,6 +668,16 @@
               <FileType>5</FileType>
               <FilePath>..\app\task_buzzer.h</FilePath>
             </File>
+            <File>
+              <FileName>task_key.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\app\task_key.c</FilePath>
+            </File>
+            <File>
+              <FileName>task_key.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\app\task_key.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
