@@ -51,7 +51,7 @@ static uint8_t SPI2_SendRecv(uint8_t byte)
     return (uint8_t)SPI_I2S_ReceiveData(SPI2);
 }
 
-/* SD 卡 SPI 模式初始化: CMD0 -> ACMD41 -> 就绪 */
+/* SD 卡 SPI 模式初始化: CMD0 -> CMD8 -> ACMD41 -> 就绪 */
 uint8_t SD_SPI_Init(void)
 {
     uint8_t r1;
@@ -69,6 +69,24 @@ uint8_t SD_SPI_Init(void)
         r1 = SPI2_SendRecv(0xFF);
     } while (r1 != 0x01 && --retry);
     if (!retry) { BSP_SD_CS_High(); return 1; }
+
+    /* CMD8: SEND_IF_COND (电压 3.3V, check pattern 0xAA)
+       SD v2.0 规范要求在 ACMD41 前发 CMD8，否则卡可能忽略 HCS 位。
+       - r1 == 0x01: SD v2.0，后续 ACMD41 的 HCS 位生效（支持 SDHC）
+       - r1 == 0x05: SD v1.x（非法命令），HCS 位被忽略，按标准容量初始化
+       SPI 模式下 CMD0/CMD8 需要正确 CRC7。 */
+    SPI2_SendRecv(0x48);                        /* CMD8 = 0x40+8 */
+    SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
+    SPI2_SendRecv(0x01); SPI2_SendRecv(0xAA);   /* arg = 0x000001AA */
+    SPI2_SendRecv(0x87);                        /* CRC7 for CMD8 with 0x1AA arg */
+    r1 = SPI2_SendRecv(0xFF);                   /* R1 */
+    if (r1 == 0x01) {
+        /* SD v2.0: 读 4 字节 R7 应答体（电压窗口 + check pattern 回显） */
+        SPI2_SendRecv(0xFF); SPI2_SendRecv(0xFF);
+        SPI2_SendRecv(0xFF); SPI2_SendRecv(0xFF);
+    }
+    /* r1 == 0x05 (SD v1.x) 无 R7 体；其它异常值亦不读，直接进 ACMD41，
+       由 ACMD41 重试循环兜底（不改变现有 HCS=1 的 ACMD41，v1.x 会忽略 HCS）。 */
 
     /* ACMD41: SD_SEND_OP_COND */
     retry = 1000;
