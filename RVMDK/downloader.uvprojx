@@ -628,6 +628,36 @@
               <FileType>5</FileType>
               <FilePath>..\app\sd_card.h</FilePath>
             </File>
+            <File>
+              <FileName>sys_state.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\app\sys_state.c</FilePath>
+            </File>
+            <File>
+              <FileName>sys_state.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\app\sys_state.h</FilePath>
+            </File>
+            <File>
+              <FileName>crc32.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\app\crc32.c</FilePath>
+            </File>
+            <File>
+              <FileName>crc32.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\app\crc32.h</FilePath>
+            </File>
+            <File>
+              <FileName>protocol.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\app\protocol.c</FilePath>
+            </File>
+            <File>
+              <FileName>protocol.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\app\protocol.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
