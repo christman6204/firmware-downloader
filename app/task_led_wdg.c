@@ -19,7 +19,7 @@
  *   - BSP_IWDG_Feed (Task 2)                    IWDG 4s 超时
  *   - SysState_GetLEDBlinkPeriod (Task 5)       返回 500/1500 ms
  *   - SysState_GetFwType (Task 5)               返回 FW_FACTORY/FW_NORMAL
- *   - LED_SYS_*/LED_FW_* 宏 (bsp_gpio.h)
+ *   - LED_SYS_xxx, LED_FW_xxx 宏 (bsp_gpio.h)
  *   - FW_FACTORY 枚举 (sys_state.h)
  */
 #include "includes.h"
