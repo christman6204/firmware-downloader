@@ -65,6 +65,7 @@
 #define FF_NORTC_YEAR       2024
 #define FF_FS_NOFSINFO      0
 #define FF_FS_LOCK          0
+#define FF_FS_RPATH         0   /* 0 = 不支持相对路径（仅用根目录 APP.bin） */
 #define FF_FS_REENTRANT     0   /* uC/OS-III 下如需线程安全，置 1 + 提供 ff_reqmgr/grp */
 
 /* ---- 调试 ---- */
