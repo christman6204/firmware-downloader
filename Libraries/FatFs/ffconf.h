@@ -66,7 +66,7 @@
 #define FF_FS_NOFSINFO      0
 #define FF_FS_LOCK          0
 #define FF_FS_RPATH         0   /* 0 = 不支持相对路径（仅用根目录 APP.bin） */
-#define FF_FS_REENTRANT     0   /* uC/OS-III 下如需线程安全，置 1 + 提供 ff_reqmgr/grp */
+#define FF_FS_REENTRANT     1   /* 1 = UCOS-III 互斥量保护（ff_ucos3.c 实现钩子） */
 
 /* ---- 调试 ---- */
 #define FF_DEBUG            1   /* 1 = 使能 ff.c 内 FAT 跟踪输出（BSP_USART2_Printf） */
