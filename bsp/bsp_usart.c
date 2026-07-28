@@ -98,6 +98,10 @@ void BSP_USART2_Printf(const char *fmt, ...)
     va_start(args, fmt);
     int len = vsnprintf(buf, sizeof(buf), fmt, args);
     va_end(args);
+    /* vsnprintf 在输出被截断时返回"本应写出的长度"（可能 > sizeof(buf)），
+       直接用于循环会读越界栈缓冲。按实际缓冲大小钳位。 */
+    if (len < 0) len = 0;
+    if (len > (int)sizeof(buf)) len = (int)sizeof(buf);
     for (int i = 0; i < len; i++) {
         while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET);
         USART_SendData(USART2, (uint8_t)buf[i]);
