@@ -13,6 +13,14 @@
 #include "diskio.h"
 #include <string.h>
 
+/* ---- 调试输出（FF_DEBUG 在 ffconf.h 中定义） ------------------------------- */
+#ifdef FF_DEBUG
+#include "bsp_usart.h"   /* BSP_USART2_Printf                 */
+#define FF_PRINTF(fmt, ...)  BSP_USART2_Printf("[FAT] " fmt "\r\n", ##__VA_ARGS__)
+#else
+#define FF_PRINTF(fmt, ...)  ((void)0)
+#endif
+
 /* ---- 内部常量 ------------------------------------------------------------- */
 #define FS_FAT16         2u
 #define FS_FAT32         3u
@@ -72,6 +80,16 @@ static FRESULT get_fat(FATFS *fs, DWORD clust, DWORD *next)
             *next = ((DWORD)p[0] | ((DWORD)p[1] << 8)
                    | ((DWORD)p[2] << 16) | ((DWORD)p[3] << 24)) & FAT32_MASK;
         }
+
+        /* 仅当检测到 EOC 时打印簇链信息 */
+        {
+            DWORD eoc = (fs->fs_type == FS_FAT32) ? EOC_FAT32 : EOC_FAT16;
+            if (*next >= eoc) {
+                FF_PRINTF("get_fat: FAT chain clust %lu -> next=%lu (EOC, >=0x%lX)",
+                          (unsigned long)clust, (unsigned long)*next,
+                          (unsigned long)eoc);
+            }
+        }
     }
     return FR_OK;
 }
@@ -124,6 +142,9 @@ static FRESULT find_file_fat16(FATFS *fs, const BYTE name[11], BYTE **p_entry)
     DWORD end   = sect + ((DWORD)fs->n_rootdir * DIR_ENTRY_SIZE + 511u) / 512u;
     WORD  n     = fs->n_rootdir;
 
+    FF_PRINTF("find_file_fat16: scanning root dir, sector base=%lu, entries=%u",
+              (unsigned long)sect, (unsigned int)n);
+
     for (; sect < end && n > 0u; sect++) {
         FRESULT fr = move_window(fs, sect);
         BYTE   *dir;
@@ -147,6 +168,9 @@ static FRESULT find_file_fat16(FATFS *fs, const BYTE name[11], BYTE **p_entry)
 static FRESULT find_file_fat32(FATFS *fs, const BYTE name[11], BYTE **p_entry)
 {
     DWORD clust = fs->dirbase;
+
+    FF_PRINTF("find_file_fat32: scanning root dir, start clust=%lu",
+              (unsigned long)clust);
 
     for (;;) {
         BYTE  ci;
@@ -181,6 +205,9 @@ static FRESULT find_file_fat32(FATFS *fs, const BYTE name[11], BYTE **p_entry)
 
 static FRESULT dir_find(FATFS *fs, const BYTE name[11], BYTE **p_entry)
 {
+    FF_PRINTF("dir_find: searching, fs_type=%s, dirbase=%lu",
+              (fs->fs_type == FS_FAT32) ? "FAT32" : "FAT16",
+              (unsigned long)fs->dirbase);
     if (fs->fs_type == FS_FAT32) { return find_file_fat32(fs, name, p_entry); }
     return find_file_fat16(fs, name, p_entry);
 }
@@ -273,6 +300,24 @@ FRESULT f_mount(FATFS *fs, const TCHAR *path, BYTE opt)
             else if (n_clusters < 65525u) { fs->fs_type = FS_FAT16; }
             else { fs->fs_type = FS_FAT32; }
         }
+
+        FF_PRINTF("f_mount: media=0x%02X, bps=%u, spc=%u, rsvd=%u, fats=%u, "
+                  "root_ents=%u, fat_sz=%lu, tot_sect=%lu, db=%lu, fatbase=%lu, "
+                  "dirbase=%lu, n_fatent=%lu, type=%s",
+                  (unsigned int)fs->win[21u],
+                  (unsigned int)ld_word(&fs->win[11u]),
+                  (unsigned int)fs->csize,
+                  (unsigned int)reserved,
+                  (unsigned int)fs->n_fats,
+                  (unsigned int)root_ents,
+                  (unsigned long)fat_size,
+                  (unsigned long)total_sect,
+                  (unsigned long)fs->database,
+                  (unsigned long)fs->fatbase,
+                  (unsigned long)fs->dirbase,
+                  (unsigned long)fs->n_fatent,
+                  (fs->fs_type == FS_FAT32) ? "FAT32"
+                    : (fs->fs_type == FS_FAT16) ? "FAT16" : "FAT12");
     }
 
     g_cur_fs = fs;
@@ -297,12 +342,21 @@ FRESULT f_open(FIL *fp, const TCHAR *path, BYTE mode)
     fp->buf        = (BYTE *)0x0;
 
     name_to_83(path, name_83);
+
+    FF_PRINTF("f_open: searching for \"%s\"", path);
+
     fr = dir_find(fs, name_83, &entry);
-    if (fr != FR_OK) { return (fr == FR_NO_FILE) ? FR_NO_FILE : fr; }
+    if (fr != FR_OK) {
+        FF_PRINTF("f_open: \"%s\" not found (fr=%d)", path, (int)fr);
+        return (fr == FR_NO_FILE) ? FR_NO_FILE : fr;
+    }
 
     start_clust = (DWORD)ld_word(&entry[20u]);                       /* 高位 */
     start_clust = (start_clust << 16u) | (DWORD)ld_word(&entry[26u]); /* 低位 */
     fp->fsize      = ld_dword(&entry[28u]);
+
+    FF_PRINTF("f_open: \"%s\" found, start_clust=%lu, fsize=%lu",
+              path, (unsigned long)start_clust, (unsigned long)fp->fsize);
     fp->fptr       = 0u;
     fp->clust      = start_clust;
     fp->start_clust = start_clust;
@@ -334,6 +388,8 @@ FRESULT f_read(FIL *fp, void *buff, UINT btr, UINT *br)
     }
     bpc = (DWORD)fs->csize * 512u;
 
+{   /* f_read loop counter for debug */
+    UINT loop_cnt = 0u;
     while (btr > 0u) {
         DWORD sector = clust2sect(fs, fp->clust)
                      + ((fp->fptr % bpc) / 512u);
@@ -342,6 +398,14 @@ FRESULT f_read(FIL *fp, void *buff, UINT btr, UINT *br)
         BYTE  tmp[512u];
 
         if (chunk > btr) { chunk = btr; }
+
+        /* 调试输出：前5次每次输出，之后每50次输出一次，避免刷屏 */
+        if (loop_cnt < 5u || (loop_cnt % 50u) == 0u) {
+            FF_PRINTF("f_read: offset=%lu, chunk=%u bytes, sector=%lu, clust=%lu",
+                      (unsigned long)fp->fptr, (unsigned int)chunk,
+                      (unsigned long)sector, (unsigned long)fp->clust);
+        }
+        loop_cnt++;
 
         if (disk_read(fs->pdrv, tmp, sector, 1u) != RES_OK) { return FR_DISK_ERR; }
         memcpy(dst, &tmp[off], (size_t)chunk);
@@ -362,6 +426,7 @@ FRESULT f_read(FIL *fp, void *buff, UINT btr, UINT *br)
             fp->clust = next;
         }
     }
+} /* end loop_cnt scope */
 
     if (br) { *br = rc; }
     return FR_OK;
@@ -379,6 +444,9 @@ FRESULT f_lseek(FIL *fp, FSIZE_t ofs)
     offset = (DWORD)ofs;
     if (offset > (DWORD)fp->fsize) { offset = (DWORD)fp->fsize; }
 
+    FF_PRINTF("f_lseek: seek to offset=%lu (fsize=%lu)",
+              (unsigned long)offset, (unsigned long)fp->fsize);
+
     {   /* Re-walk 簇链从 start_clust 到新偏移 */
         DWORD clust, sect;
         FRESULT fr = walk_chain(fs, fp->start_clust, offset, &clust, &sect);
@@ -394,6 +462,7 @@ FRESULT f_lseek(FIL *fp, FSIZE_t ofs)
 FRESULT f_close(FIL *fp)
 {
     if (fp == (FIL *)0x0) { return FR_INVALID_OBJECT; }
+    FF_PRINTF("f_close");
     fp->flag = 0u;
     return FR_OK;
 }
@@ -423,10 +492,12 @@ FRESULT f_stat(const TCHAR *path, FILINFO *fno)
         fno->ftime   = 0u;
         fno->fattrib = 0u;
         fno->fname[0] = '\0';
+        FF_PRINTF("f_stat: \"%s\" not found (fr=%d)", path, (int)fr);
         return fr;
     }
 
     fno->fsize   = ld_dword(&entry[28u]);
+    FF_PRINTF("f_stat: \"%s\" found, size=%lu", path, (unsigned long)fno->fsize);
     fno->fdate   = ld_word(&entry[24u]);
     fno->ftime   = ld_word(&entry[22u]);
     fno->fattrib = entry[11u];

@@ -3,6 +3,8 @@
  * FatFs 配置（按 task-4-brief Step 2 关键配置）。
  *
  * 取值：
+ *   FF_DEBUG = 1    使能调试输出，ff.c 内部通过 BSP_USART2_Printf 打印 FAT 跟踪信息。
+ *                    调试输出仅影响串口输出，不改变 FAT 解析逻辑；关闭后零开销。
  *   FF_FS_READONLY = 1   只读文件系统（下载器只需读 APP.bin）
  *   FF_FS_MINIMIZE = 0   保留 f_lseek（下载状态机重试重定位用，见 SD_FileSeek）
  *   FF_USE_LFN     = 0   不使用长文件名（APP.bin 为 8.3 名）
@@ -64,5 +66,8 @@
 #define FF_FS_NOFSINFO      0
 #define FF_FS_LOCK          0
 #define FF_FS_REENTRANT     0   /* uC/OS-III 下如需线程安全，置 1 + 提供 ff_reqmgr/grp */
+
+/* ---- 调试 ---- */
+#define FF_DEBUG            1   /* 1 = 使能 ff.c 内 FAT 跟踪输出（BSP_USART2_Printf） */
 
 #endif /* _FFCONF */
