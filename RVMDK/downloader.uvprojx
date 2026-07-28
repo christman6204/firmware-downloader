@@ -1028,6 +1028,11 @@
               <FileType>5</FileType>
               <FilePath>..\Libraries\FatFs\diskio.h</FilePath>
             </File>
+            <File>
+              <FileName>ff_ucos3.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Libraries\FatFs\ff_ucos3.c</FilePath>
+            </File>
           </Files>
         </Group>
       </Groups>
