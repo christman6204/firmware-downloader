@@ -1,0 +1,193 @@
+
+=================================================== keil-build-viewer v1.6 ==================================================
+ 
+[Search keil project] 1 item(s)
+	D:\claude\downloader\downloader\RVMDK\downloader.uvprojx
+
+[User input] 
+[Current folder] D:\claude\downloader\downloader\RVMDK
+[Encoding] 936
+[Keil project path] D:\claude\downloader\downloader\RVMDK\downloader.uvprojx
+[Keil project name] downloader.uvprojx
+[Is keil v4] 0
+[target name] debug
+[final target name] debug
+
+[Device] STM32F103VE
+[Target name] 
+[Output name] IL_800_debug
+[Output path] D:\output\MDK\IL-800\DEBUG\
+[Listing path] .\Listings\
+[Is has pack] 1
+[Is enbale LTO] 0
+[Is has user library] 0
+[Is custom scatter file] 1
+
+[downloader.uvprojx]  [debug]  [STM32F103VE]  [LTO disable]
+ 
+[memory info]
+[name] IRAM [base addr] 0x20000000 [size] 0x00010000 [type] 1 [off-chip] 0 [is pack] 1 [ID] 2 
+[name] IROM [base addr] 0x08000000 [size] 0x00080000 [type] 2 [off-chip] 0 [is pack] 1 [ID] 3 
+[map file path] D:\claude\downloader\downloader\RVMDK\Listings\IL_800_debug.map
+
+[region info]
+[load region] LR_VECTOR
+	[execution region] ER_VECTOR, 0x08000000, 0x00008000, 0x00004F1C [memory type] 2 [memory ID] 3
+
+	[execution region] RW_IRAM1, 0x20000000, 0x00010000, 0x00004390 [memory type] 1 [memory ID] 2
+		[ZI block] addr: 0x20000100, size: 0x00004290 (17040)
+
+
+[object name max length] 22
+[object path max length] 59
+
+[object in map file]
+[object name] app.o                   [path] ..\app\app.c
+[object name] bsp.o                   [path] ..\bsp\bsp.c
+[object name] core_cm3.o              [path] ..\Libraries\CMSIS\core_cm3.c
+[object name] cpu_a.o                 [path] ..\uc-cpu\ARM-Cortex-M3\RealView\cpu_a.asm
+[object name] cpu_core.o              [path] ..\uc-cpu\cpu_core.c
+[object name] lib_mem.o               [path] ..\uc-lib\lib_mem.c
+[object name] os_app_hooks.o          [path] ..\app\os_app_hooks.c
+[object name] os_cfg_app.o            [path] ..\ucos-iii\Source\os_cfg_app.c
+[object name] os_core.o               [path] ..\ucos-iii\Source\os_core.c
+[object name] os_cpu_a.o              [path] ..\ucos-iii\Ports\ARM-Cortex-M3\Generic\RealView\os_cpu_a.s
+[object name] os_cpu_c.o              [path] ..\ucos-iii\Ports\ARM-Cortex-M3\Generic\RealView\os_cpu_c.c
+[object name] os_dbg.o                [path] ..\ucos-iii\Source\os_dbg.c
+[object name] os_flag.o               [path] ..\ucos-iii\Source\os_flag.c
+[object name] os_int.o                [path] ..\ucos-iii\Source\os_int.c
+[object name] os_msg.o                [path] ..\ucos-iii\Source\os_msg.c
+[object name] os_mutex.o              [path] ..\ucos-iii\Source\os_mutex.c
+[object name] os_prio.o               [path] ..\ucos-iii\Source\os_prio.c
+[object name] os_sem.o                [path] ..\ucos-iii\Source\os_sem.c
+[object name] os_stat.o               [path] ..\ucos-iii\Source\os_stat.c
+[object name] os_task.o               [path] ..\ucos-iii\Source\os_task.c
+[object name] os_tick.o               [path] ..\ucos-iii\Source\os_tick.c
+[object name] os_time.o               [path] ..\ucos-iii\Source\os_time.c
+[object name] os_tmr.o                [path] ..\ucos-iii\Source\os_tmr.c
+[object name] os_var.o                [path] ..\ucos-iii\Source\os_var.c
+[object name] startup_stm32f10x_hd.o  [path] ..\Libraries\CMSIS\startup\startup_stm32f10x_hd.s
+[object name] stm32f10x_gpio.o        [path] ..\Libraries\FWlib\src\stm32f10x_gpio.c
+[object name] stm32f10x_it.o          [path] ..\stm32f10x_it.c
+[object name] stm32f10x_rcc.o         [path] ..\Libraries\FWlib\src\stm32f10x_rcc.c
+[object name] system_stm32f10x.o      [path] ..\Libraries\CMSIS\system_stm32f10x.c
+
+[file path in keil project]
+[old name] startup_stm32f10x_hd.s  [type] 1   [path] ..\Libraries\CMSIS\startup\startup_stm32f10x_hd.s
+[old name] core_cm3.c              [type] 1   [path] ..\Libraries\CMSIS\core_cm3.c
+[old name] system_stm32f10x.c      [type] 1   [path] ..\Libraries\CMSIS\system_stm32f10x.c
+[old name] misc.c                  [type] 1   [path] ..\Libraries\FWlib\src\misc.c
+[old name] stm32f10x_adc.c         [type] 1   [path] ..\Libraries\FWlib\src\stm32f10x_adc.c
+[old name] stm32f10x_bkp.c         [type] 1   [path] ..\Libraries\FWlib\src\stm32f10x_bkp.c
+[old name] stm32f10x_can.c         [type] 1   [path] ..\Libraries\FWlib\src\stm32f10x_can.c
+[old name] stm32f10x_cec.c         [type] 1   [path] ..\Libraries\FWlib\src\stm32f10x_cec.c
+[old name] stm32f10x_crc.c         [type] 1   [path] ..\Libraries\FWlib\src\stm32f10x_crc.c
+[old name] stm32f10x_dac.c         [type] 1   [path] ..\Libraries\FWlib\src\stm32f10x_dac.c
+[old name] stm32f10x_dbgmcu.c      [type] 1   [path] ..\Libraries\FWlib\src\stm32f10x_dbgmcu.c
+[old name] stm32f10x_dma.c         [type] 1   [path] ..\Libraries\FWlib\src\stm32f10x_dma.c
+[old name] stm32f10x_exti.c        [type] 1   [path] ..\Libraries\FWlib\src\stm32f10x_exti.c
+[old name] stm32f10x_flash.c       [type] 1   [path] ..\Libraries\FWlib\src\stm32f10x_flash.c
+[old name] stm32f10x_fsmc.c        [type] 1   [path] ..\Libraries\FWlib\src\stm32f10x_fsmc.c
+[old name] stm32f10x_gpio.c        [type] 1   [path] ..\Libraries\FWlib\src\stm32f10x_gpio.c
+[old name] stm32f10x_i2c.c         [type] 1   [path] ..\Libraries\FWlib\src\stm32f10x_i2c.c
+[old name] stm32f10x_iwdg.c        [type] 1   [path] ..\Libraries\FWlib\src\stm32f10x_iwdg.c
+[old name] stm32f10x_pwr.c         [type] 1   [path] ..\Libraries\FWlib\src\stm32f10x_pwr.c
+[old name] stm32f10x_rcc.c         [type] 1   [path] ..\Libraries\FWlib\src\stm32f10x_rcc.c
+[old name] stm32f10x_rtc.c         [type] 1   [path] ..\Libraries\FWlib\src\stm32f10x_rtc.c
+[old name] stm32f10x_sdio.c        [type] 1   [path] ..\Libraries\FWlib\src\stm32f10x_sdio.c
+[old name] stm32f10x_spi.c         [type] 1   [path] ..\Libraries\FWlib\src\stm32f10x_spi.c
+[old name] stm32f10x_tim.c         [type] 1   [path] ..\Libraries\FWlib\src\stm32f10x_tim.c
+[old name] stm32f10x_usart.c       [type] 1   [path] ..\Libraries\FWlib\src\stm32f10x_usart.c
+[old name] stm32f10x_wwdg.c        [type] 1   [path] ..\Libraries\FWlib\src\stm32f10x_wwdg.c
+[old name] stm32f10x_it.c          [type] 1   [path] ..\stm32f10x_it.c
+[old name] app.c                   [type] 1   [path] ..\app\app.c
+[old name] os_app_hooks.c          [type] 1   [path] ..\app\os_app_hooks.c
+[old name] bsp.c                   [type] 1   [path] ..\bsp\bsp.c
+[old name] cpu_core.c              [type] 1   [path] ..\uc-cpu\cpu_core.c
+[old name] cpu_a.asm               [type] 1   [path] ..\uc-cpu\ARM-Cortex-M3\RealView\cpu_a.asm
+[old name] cpu_c.c                 [type] 1   [path] ..\uc-cpu\ARM-Cortex-M3\RealView\cpu_c.c
+[old name] lib_ascii.c             [type] 1   [path] ..\uc-lib\lib_ascii.c
+[old name] lib_math.c              [type] 1   [path] ..\uc-lib\lib_math.c
+[old name] lib_mem.c               [type] 1   [path] ..\uc-lib\lib_mem.c
+[old name] lib_str.c               [type] 1   [path] ..\uc-lib\lib_str.c
+[old name] lib_mem_a.asm           [type] 1   [path] ..\uc-lib\Ports\ARM-Cortex-M3\RealView\lib_mem_a.asm
+[old name] os_cfg_app.c            [type] 1   [path] ..\ucos-iii\Source\os_cfg_app.c
+[old name] os_core.c               [type] 1   [path] ..\ucos-iii\Source\os_core.c
+[old name] os_dbg.c                [type] 1   [path] ..\ucos-iii\Source\os_dbg.c
+[old name] os_flag.c               [type] 1   [path] ..\ucos-iii\Source\os_flag.c
+[old name] os_int.c                [type] 1   [path] ..\ucos-iii\Source\os_int.c
+[old name] os_mem.c                [type] 1   [path] ..\ucos-iii\Source\os_mem.c
+[old name] os_msg.c                [type] 1   [path] ..\ucos-iii\Source\os_msg.c
+[old name] os_mutex.c              [type] 1   [path] ..\ucos-iii\Source\os_mutex.c
+[old name] os_pend_multi.c         [type] 1   [path] ..\ucos-iii\Source\os_pend_multi.c
+[old name] os_prio.c               [type] 1   [path] ..\ucos-iii\Source\os_prio.c
+[old name] os_q.c                  [type] 1   [path] ..\ucos-iii\Source\os_q.c
+[old name] os_sem.c                [type] 1   [path] ..\ucos-iii\Source\os_sem.c
+[old name] os_stat.c               [type] 1   [path] ..\ucos-iii\Source\os_stat.c
+[old name] os_task.c               [type] 1   [path] ..\ucos-iii\Source\os_task.c
+[old name] os_tick.c               [type] 1   [path] ..\ucos-iii\Source\os_tick.c
+[old name] os_time.c               [type] 1   [path] ..\ucos-iii\Source\os_time.c
+[old name] os_tmr.c                [type] 1   [path] ..\ucos-iii\Source\os_tmr.c
+[old name] os_var.c                [type] 1   [path] ..\ucos-iii\Source\os_var.c
+[old name] os_cpu_a.s              [type] 1   [path] ..\ucos-iii\Ports\ARM-Cortex-M3\Generic\RealView\os_cpu_a.s
+[old name] os_cpu_c.c              [type] 1   [path] ..\ucos-iii\Ports\ARM-Cortex-M3\Generic\RealView\os_cpu_c.c
+[old name] aes.c                   [type] 1   [path] ..\Libraries\mbedtls\library\aes.c
+[old name] sha256.c                [type] 1   [path] ..\Libraries\mbedtls\library\sha256.c
+[old name] md.c                    [type] 1   [path] ..\Libraries\mbedtls\library\md.c
+[old name] platform.c              [type] 1   [path] ..\Libraries\mbedtls\library\platform.c
+[old name] platform_util.c         [type] 1   [path] ..\Libraries\mbedtls\library\platform_util.c
+
+[record region info]
+[load region] LR_VECTOR
+	[execution region] ER_VECTOR, 0x08000000, 0x00008000, 0x000001A8 [type] 2 [ID] 3
+[load region] LR_APP_INFO
+	[execution region] ER_APP_INFO, 0x0800F800, 0x00000080, 0x00000000 [type] 2 [ID] 3
+[load region] LR_IROM1
+	[execution region] ER_IROM1, 0x08010000, 0x00048000, 0x00004D74 [type] 2 [ID] 3
+	[execution region] RW_IRAM1, 0x20000000, 0x00010000, 0x00004390 [type] 1 [ID] 2
+-----------------------------------------------------------------------------------------------------------------------
+                             FILE(s)                            |         RAM (byte)       |       FLASH (byte)       |
+-----------------------------------------------------------------------------------------------------------------------
+..\app\app.c():                                                 |        2000              |         320              |
+..\bsp\bsp.c():                                                 |           0              |         150              |
+..\Libraries\CMSIS\core_cm3.c():                                |           0              |           0              |
+..\uc-cpu\ARM-Cortex-M3\RealView\cpu_a.asm():                   |           0              |          52              |
+..\uc-cpu\cpu_core.c():                                         |          44              |         568              |
+..\uc-lib\lib_mem.c():                                          |        4172              |         192              |
+..\app\os_app_hooks.c():                                        |           0              |           0              |
+..\ucos-iii\Source\os_cfg_app.c():                              |        8432              |         166              |
+..\ucos-iii\Source\os_core.c():                                 |           0              |        3036              |
+..\ucos-iii\Ports\ARM-Cortex-M3\Generic\RealView\os_cpu_a.s():  |           0              |         132              |
+..\ucos-iii\Ports\ARM-Cortex-M3\Generic\RealView\os_cpu_c.c():  |           4              |         664              |
+..\ucos-iii\Source\os_dbg.c():                                  |           0              |         768              |
+..\ucos-iii\Source\os_flag.c():                                 |           0              |         746              |
+..\ucos-iii\Source\os_int.c():                                  |           0              |        1136              |
+..\ucos-iii\Source\os_msg.c():                                  |           0              |         466              |
+..\ucos-iii\Source\os_mutex.c():                                |           0              |          24              |
+..\ucos-iii\Source\os_prio.c():                                 |           4              |         140              |
+..\ucos-iii\Source\os_sem.c():                                  |           0              |         432              |
+..\ucos-iii\Source\os_stat.c():                                 |           0              |        1676              |
+..\ucos-iii\Source\os_task.c():                                 |           0              |        5460              |
+..\ucos-iii\Source\os_tick.c():                                 |           0              |        1348              |
+..\ucos-iii\Source\os_time.c():                                 |           0              |         960              |
+..\ucos-iii\Source\os_tmr.c():                                  |           0              |         812              |
+..\ucos-iii\Source\os_var.c():                                  |        1588              |         192              |
+..\Libraries\CMSIS\startup\startup_stm32f10x_hd.s():            |        1024              |         340              |
+..\Libraries\FWlib\src\stm32f10x_gpio.c():                      |           0              |           8              |
+..\stm32f10x_it.c():                                            |           0              |          22              |
+..\Libraries\FWlib\src\stm32f10x_rcc.c():                       |          20              |         232              |
+..\Libraries\CMSIS\system_stm32f10x.c():                        |           0              |         328              |
+-----------------------------------------------------------------------------------------------------------------------
+[memory print mode]: 0
+LR_VECTOR
+        RAM 1              [0x20000000 | 0x00010000 (65536)]
+                [zi start] 1   [zi end] 13
+                RW_IRAM1   [0x20000000]|¡ö¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ_____________________________________| (  16.8 KB /  64.0 KB )  26.4%  
+ 
+        FLASH 1            [0x08000000 | 0x00080000 (524288)]
+                ER_VECTOR  [0x08000000]|¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö____________________| (  19.7 KB /  32.0 KB )  61.8%  [+19828]
+ 
+[htm file path] D:\claude\downloader\downloader\RVMDK\D:\output\MDK\IL-800\DEBUG\IL_800_debug.htm
+=============================================================================================================================
+
+run time: 0.041 s

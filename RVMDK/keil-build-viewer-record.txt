@@ -1,0 +1,41 @@
+      Code (inc. data)   RO Data    RW Data    ZI Data      Debug   Object Name
+       320          0          0          0       2000          0   app.o
+       150          0          0          0          0          0   bsp.o
+         0          0          0          0          0          0   core_cm3.o
+        52          0          0          0          0          0   cpu_a.o
+       540          0          0         28         16          0   cpu_core.o
+       188          0          0          4       4168          0   lib_mem.o
+         0          0          0          0          0          0   os_app_hooks.o
+         2          0        164          0       8432          0   os_cfg_app.o
+      3036          0          0          0          0          0   os_core.o
+       132          0          0          0          0          0   os_cpu_a.o
+       660          0          0          4          0          0   os_cpu_c.o
+       404          0        364          0          0          0   os_dbg.o
+       746          0          0          0          0          0   os_flag.o
+      1136          0          0          0          0          0   os_int.o
+       466          0          0          0          0          0   os_msg.o
+        24          0          0          0          0          0   os_mutex.o
+       136          0          0          4          0          0   os_prio.o
+       432          0          0          0          0          0   os_sem.o
+      1676          0          0          0          0          0   os_stat.o
+      5460          0          0          0          0          0   os_task.o
+      1348          0          0          0          0          0   os_tick.o
+       960          0          0          0          0          0   os_time.o
+       812          0          0          0          0          0   os_tmr.o
+         0          0          0        192       1396          0   os_var.o
+        36          0        304          0       1024          0   startup_stm32f10x_hd.o
+         8          0          0          0          0          0   stm32f10x_gpio.o
+        22          0          0          0          0          0   stm32f10x_it.o
+       212          0          0         20          0          0   stm32f10x_rcc.o
+       328          0          0          0          0          0   system_stm32f10x.o
+Object Totals
+
+Memory Map of the image
+
+	Load Region LR_VECTOR 
+
+		Execution Region ER_VECTOR (Exec base: 0x08000000, Size: 0x00004F1C, Max: 0x00008000, END)
+
+		Execution Region RW_IRAM1 (Exec base: 0x20000000, Size: 0x00004390, Max: 0x00010000, END)
+
+Image component sizes
