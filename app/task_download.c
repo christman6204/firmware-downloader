@@ -392,26 +392,12 @@ void AppTask_Download(void *p_arg)
 
             /* SD 源：确保 fptr 对齐 offset。正常流程 sd_fptr == offset；
                任何重试（超时 / 写错误 / 读失败）后 sd_fptr 会越过 offset，
-               此处重定位。无 f_lseek 封装，靠重开 + 丢弃前缀实现。 */
+               此处用 f_lseek 重定位（替代 close+reopen+丢弃前缀的字节扫描）。 */
             if (src == DATA_SRC_SD_CARD && sd_fptr != offset) {
-                uint32_t skip = offset;
-                SD_FileClose();
-                (void)SD_FileOpen();
-                sd_fptr = 0u;
-                while (skip >= (uint32_t)APP_SEGMENT_SIZE) {
-                    uint16_t br = 0u;
-                    if (SD_FileRead(g_seg_buf,
-                                    (uint16_t)APP_SEGMENT_SIZE,
-                                    &br) != SD_OK || br == 0u) {
-                        break;
-                    }
-                    skip     -= (uint32_t)br;
-                    sd_fptr  += (uint32_t)br;
-                }
-                if (skip > 0u && skip < (uint32_t)APP_SEGMENT_SIZE) {
-                    uint16_t br = 0u;
-                    (void)SD_FileRead(g_seg_buf, (uint16_t)skip, &br);
-                    sd_fptr += (uint32_t)br;
+                if (SD_FileSeek(offset) == 0u) {
+                    sd_fptr = offset;
+                } else {
+                    /* seek 失败：按读错误处理，sd_fptr 不更新，下轮重定位/重试 */
                 }
             }
 

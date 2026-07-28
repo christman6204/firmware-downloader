@@ -56,6 +56,11 @@ uint8_t SD_FileOpen(void);
    APP_SEGMENT_SIZE (256) 字节，足以容纳。 */
 uint8_t SD_FileRead(uint8_t *buf, uint16_t btr, uint16_t *br);
 
+/* 将已打开文件的读写指针定位到 offset（转发到 FatFs f_lseek）。
+   返回 0 = 成功，1 = 失败（未就绪 / 文件未打开 / f_lseek 失败）。
+   用于下载状态机重试时重定位，替代 close+reopen+丢弃前缀的字节扫描。 */
+uint8_t SD_FileSeek(uint32_t offset);
+
 /* 返回已打开文件的大小 (字节)。未打开时返回 0。 */
 uint32_t SD_FileGetSize(void);
 

@@ -152,6 +152,7 @@ typedef struct {
 FRESULT f_mount (FATFS* fs, const TCHAR* path, BYTE opt);
 FRESULT f_open  (FIL* fp, const TCHAR* path, BYTE mode);
 FRESULT f_read  (FIL* fp, void* buff, UINT btr, UINT* br);
+FRESULT f_lseek (FIL* fp, FSIZE_t ofs);   /* 移动读写指针（重试重定位用） */
 FRESULT f_close (FIL* fp);
 FSIZE_t f_size  (FIL* fp);
 FRESULT f_stat  (const TCHAR* path, FILINFO* fno);

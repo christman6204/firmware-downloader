@@ -4,7 +4,7 @@
  *
  * 取值：
  *   FF_FS_READONLY = 1   只读文件系统（下载器只需读 APP.bin）
- *   FF_FS_MINIMIZE = 1   裁剪 f_lseek/f_chdir 等无关 API
+ *   FF_FS_MINIMIZE = 0   保留 f_lseek（下载状态机重试重定位用，见 SD_FileSeek）
  *   FF_USE_LFN     = 0   不使用长文件名（APP.bin 为 8.3 名）
  *   FF_VOLUMES     = 1   单卷（仅 SD 卡）
  *   FF_MAX_SS      = 512 SD 卡固定 512 字节扇区
@@ -19,8 +19,8 @@
 / Function Configurations
 /---------------------------------------------------------------------------*/
 
-#define FF_FS_READONLY      1   /* 1 = 禁用写 API（f_write/f_lseek/f_unlink 等） */
-#define FF_FS_MINIMIZE      1   /* 1 = 裁剪 f_lseek/f_sync/f_chdir 等 */
+#define FF_FS_READONLY      1   /* 1 = 禁用写 API（f_write/f_unlink 等）。注：f_lseek 在只读下仍可用 */
+#define FF_FS_MINIMIZE      0   /* 0 = 保留 f_lseek（重试重定位用）；f_sync/f_chdir 等未使用 */
 #define FF_USE_STRFUNC      0   /* 0 = 不启用 f_gets/f_putc 等 */
 #define FF_USE_FIND         0
 #define FF_USE_MKFS         0
