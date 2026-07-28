@@ -633,6 +633,16 @@
               <FileType>5</FileType>
               <FilePath>..\bsp\bsp.h</FilePath>
             </File>
+            <File>
+              <FileName>bsp_gpio.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\bsp\bsp_gpio.c</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_iwdg.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\bsp\bsp_iwdg.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

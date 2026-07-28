@@ -41,6 +41,11 @@ void BSP_GPIO_Init(void)
     GPIO_InitStructure.GPIO_Pin   = SD_CS_PIN;  /* PD8 */
     GPIO_Init(GPIOD, &GPIO_InitStructure);
     GPIO_SetBits(GPIOD, SD_CS_PIN);
+
+    /* 蜂鸣器为 PA3 高电平有效，与 LED（低电平有效）共组初始化时
+       会被 SetBits 拉高 = 上电即响。所有引脚配置完成后，
+       显式关闭蜂鸣器，确保上电静音。 */
+    BSP_Buzzer_Off();
 }
 
 void BSP_LED_On(GPIO_TypeDef *port, uint16_t pin)
