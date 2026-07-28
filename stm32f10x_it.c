@@ -25,6 +25,7 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f10x_it.h"
+#include "bsp_usart.h"
 
 /** @addtogroup STM32F10x_StdPeriph_Template
   * @{
@@ -139,8 +140,20 @@ void DebugMon_Handler(void)
 }*/
 
 /**
+  * @brief  This function handles USART1 global interrupt request.
+  *          业务下载口（PA9/PA10）中断接收 + 空闲线检测，
+  *          实际处理在 BSP_USART1_IRQHandler()（bsp_usart.c）。
+  * @param  None
+  * @retval None
+  */
+void USART1_IRQHandler(void)
+{
+    BSP_USART1_IRQHandler();
+}
+
+/**
   * @}
-  */ 
+  */
 
 
 /******************* (C) COPYRIGHT 2011 STMicroelectronics *****END OF FILE****/

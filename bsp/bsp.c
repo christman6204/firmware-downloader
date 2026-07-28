@@ -36,7 +36,7 @@ void  BSP_Init (void)
 {
     BSP_GPIO_Init();
     BSP_IWDG_Init();
-    /* USART/SPI 初始化在后续 Task 中添加 */
+    BSP_USART_Init();
 }
 
 

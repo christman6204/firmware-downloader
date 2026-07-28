@@ -21,6 +21,7 @@
 #include  <os.h>
 #include "bsp_gpio.h"
 #include "bsp_iwdg.h"
+#include "bsp_usart.h"
 
 
 /*
