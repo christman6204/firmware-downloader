@@ -76,7 +76,14 @@
 
 #include  <bsp.h>
 #include  <app_cfg.h>
-#include  "sd_card.h"
+#include  <sys_state.h>
+#include  <crc32.h>
+#include  <protocol.h>
+#include  <sd_card.h>
+#include  <task_key.h>
+#include  <task_led_wdg.h>
+#include  <task_buzzer.h>
+#include  <task_download.h>
 
 /*
 *********************************************************************************************************
