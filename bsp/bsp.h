@@ -22,6 +22,7 @@
 #include "bsp_gpio.h"
 #include "bsp_iwdg.h"
 #include "bsp_usart.h"
+#include "bsp_spi_sd.h"
 
 
 /*

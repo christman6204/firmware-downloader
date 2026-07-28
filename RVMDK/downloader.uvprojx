@@ -339,7 +339,7 @@
               <MiscControls>--no-multibyte-chars</MiscControls>
               <Define>STM32F10X_HD, USE_STDPERIPH_DRIVER,DEBUG_APP</Define>
               <Undefine></Undefine>
-              <IncludePath>..\Libraries\CMSIS;..\Libraries\FWlib\inc;..;..\app;..\app;..\bsp;..\uc-cpu;..\uc-cpu\ARM-Cortex-M3\RealView;..\uc-lib;..\ucos-iii\Source;..\ucos-iii\Ports\ARM-Cortex-M3\Generic\RealView;..\Libraries\mbedtls\include</IncludePath>
+              <IncludePath>..\Libraries\CMSIS;..\Libraries\FWlib\inc;..;..\app;..\app;..\bsp;..\uc-cpu;..\uc-cpu\ARM-Cortex-M3\RealView;..\uc-lib;..\ucos-iii\Source;..\ucos-iii\Ports\ARM-Cortex-M3\Generic\RealView;..\Libraries\mbedtls\include;..\Libraries\FatFs</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -618,6 +618,16 @@
               <FileType>5</FileType>
               <FilePath>..\app\os_cfg_app.h</FilePath>
             </File>
+            <File>
+              <FileName>sd_card.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\app\sd_card.c</FilePath>
+            </File>
+            <File>
+              <FileName>sd_card.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\app\sd_card.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -652,6 +662,16 @@
               <FileName>bsp_usart.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\bsp\bsp_usart.h</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_spi_sd.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\bsp\bsp_spi_sd.c</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_spi_sd.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\bsp\bsp_spi_sd.h</FilePath>
             </File>
           </Files>
         </Group>
@@ -900,6 +920,41 @@
               <FileName>platform_util.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Libraries\mbedtls\library\platform_util.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>FatFs</GroupName>
+          <Files>
+            <File>
+              <FileName>ff.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Libraries\FatFs\ff.c</FilePath>
+            </File>
+            <File>
+              <FileName>ff.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Libraries\FatFs\ff.h</FilePath>
+            </File>
+            <File>
+              <FileName>ffconf.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Libraries\FatFs\ffconf.h</FilePath>
+            </File>
+            <File>
+              <FileName>integer.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Libraries\FatFs\integer.h</FilePath>
+            </File>
+            <File>
+              <FileName>diskio.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Libraries\FatFs\diskio.c</FilePath>
+            </File>
+            <File>
+              <FileName>diskio.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\Libraries\FatFs\diskio.h</FilePath>
             </File>
           </Files>
         </Group>
