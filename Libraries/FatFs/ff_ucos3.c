@@ -18,6 +18,7 @@
  */
 
 #include "ff.h"       /* FF_VOLUMES, ff_mutex_* 声明              */
+#include <stdio.h>     /* snprintf                                   */
 #include "os.h"       /* OSMutexCreate/Del/Pend/Post, OS_ERR       */
 
 /* ---- 互斥量数组（vol 索引）----------------------------------------------- */

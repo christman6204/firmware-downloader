@@ -703,6 +703,16 @@
               <FileType>5</FileType>
               <FilePath>..\bsp\bsp_spi_sd.h</FilePath>
             </File>
+            <File>
+              <FileName>bsp_gpio.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\bsp\bsp_gpio.h</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_iwdg.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\bsp\bsp_iwdg.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -1027,6 +1037,11 @@
               <FileName>diskio.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\Libraries\FatFs\diskio.h</FilePath>
+            </File>
+            <File>
+              <FileName>ff_ucos3.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Libraries\FatFs\ff_ucos3.c</FilePath>
             </File>
           </Files>
         </Group>

@@ -10,18 +10,19 @@
        540          0          0         28         16          0   cpu_core.o
        138          0       1024          4          0          0   crc32.o
        156          0          0          1          0          0   diskio.o
-      3108          0        128          6          0          0   ff.o
+      3392          0        128          6          0          0   ff.o
+       316          0          0          2         88          0   ff_ucos3.o
        188          0          0          4       4168          0   lib_mem.o
        112          0          0          0          0          0   misc.o
          2          0        164          0       8432          0   os_cfg_app.o
-      3172          0          0          0          0          0   os_core.o
+      3370          0          0          0          0          0   os_core.o
        132          0          0          0          0          0   os_cpu_a.o
        660          0          0          4          0          0   os_cpu_c.o
        428          0        364          0          0          0   os_dbg.o
        746          0          0          0          0          0   os_flag.o
       1176          0          0          0          0          0   os_int.o
        570          0          0          0          0          0   os_msg.o
-      1784          0          0          0          0          0   os_mutex.o
+      2824          0          0          0          0          0   os_mutex.o
        136          0          0          4          0          0   os_prio.o
       1464          0          0          0          0          0   os_q.o
       1400          0          0          0          0          0   os_sem.o
@@ -52,8 +53,8 @@ Memory Map of the image
 
 	Load Region LR_VECTOR 
 
-		Execution Region ER_VECTOR (Exec base: 0x08000000, Size: 0x0000A4B0, Max: 0x00020000, END)
+		Execution Region ER_VECTOR (Exec base: 0x08000000, Size: 0x0000AC10, Max: 0x00020000, END)
 
-		Execution Region RW_IRAM1 (Exec base: 0x20000000, Size: 0x00006A80, Max: 0x00010000, END)
+		Execution Region RW_IRAM1 (Exec base: 0x20000000, Size: 0x00006AE0, Max: 0x00010000, END)
 
 Image component sizes

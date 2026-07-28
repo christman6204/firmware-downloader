@@ -32,10 +32,10 @@
 
 [region info]
 [load region] LR_VECTOR
-	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000A4B0 [memory type] 2 [memory ID] 3
+	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000AC10 [memory type] 2 [memory ID] 3
 
-	[execution region] RW_IRAM1, 0x20000000, 0x00010000, 0x00006A80 [memory type] 1 [memory ID] 2
-		[ZI block] addr: 0x20000130, size: 0x00006950 (26960)
+	[execution region] RW_IRAM1, 0x20000000, 0x00010000, 0x00006AE0 [memory type] 1 [memory ID] 2
+		[ZI block] addr: 0x20000138, size: 0x000069A8 (27048)
 
 
 [object name max length] 22
@@ -54,6 +54,7 @@
 [object name] crc32.o                 [path] ..\app\crc32.c
 [object name] diskio.o                [path] ..\Libraries\FatFs\diskio.c
 [object name] ff.o                    [path] ..\Libraries\FatFs\ff.c
+[object name] ff_ucos3.o              [path] ..\Libraries\FatFs\ff_ucos3.c
 [object name] lib_mem.o               [path] ..\uc-lib\lib_mem.c
 [object name] misc.o                  [path] ..\Libraries\FWlib\src\misc.c
 [object name] os_cfg_app.o            [path] ..\ucos-iii\Source\os_cfg_app.c
@@ -168,11 +169,12 @@
 [old name] platform_util.c         [type] 1   [path] ..\Libraries\mbedtls\library\platform_util.c
 [old name] ff.c                    [type] 1   [path] ..\Libraries\FatFs\ff.c
 [old name] diskio.c                [type] 1   [path] ..\Libraries\FatFs\diskio.c
+[old name] ff_ucos3.c              [type] 1   [path] ..\Libraries\FatFs\ff_ucos3.c
 
 [record region info]
 [load region] LR_VECTOR
-	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000A4B0 [type] 2 [ID] 3
-	[execution region] RW_IRAM1, 0x20000000, 0x00010000, 0x00006A80 [type] 1 [ID] 2
+	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000AC10 [type] 2 [ID] 3
+	[execution region] RW_IRAM1, 0x20000000, 0x00010000, 0x00006AE0 [type] 1 [ID] 2
 -----------------------------------------------------------------------------------------------------------------------
                              FILE(s)                            |         RAM (byte)       |       FLASH (byte)       |
 -----------------------------------------------------------------------------------------------------------------------
@@ -187,18 +189,19 @@
 ..\uc-cpu\cpu_core.c():                                         |          44              |         568              |
 ..\app\crc32.c():                                               |           4              |        1166              |
 ..\Libraries\FatFs\diskio.c():                                  |           1              |         157              |
-..\Libraries\FatFs\ff.c():                                      |           6              |        3242              |
+..\Libraries\FatFs\ff.c():                                      |           6              |        3526              |
+..\Libraries\FatFs\ff_ucos3.c():                                |          90              |         318              |
 ..\uc-lib\lib_mem.c():                                          |        4172              |         192              |
 ..\Libraries\FWlib\src\misc.c():                                |           0              |         112              |
 ..\ucos-iii\Source\os_cfg_app.c():                              |        8432              |         166              |
-..\ucos-iii\Source\os_core.c():                                 |           0              |        3172              |
+..\ucos-iii\Source\os_core.c():                                 |           0              |        3370              |
 ..\ucos-iii\Ports\ARM-Cortex-M3\Generic\RealView\os_cpu_a.s():  |           0              |         132              |
 ..\ucos-iii\Ports\ARM-Cortex-M3\Generic\RealView\os_cpu_c.c():  |           4              |         664              |
 ..\ucos-iii\Source\os_dbg.c():                                  |           0              |         792              |
 ..\ucos-iii\Source\os_flag.c():                                 |           0              |         746              |
 ..\ucos-iii\Source\os_int.c():                                  |           0              |        1176              |
 ..\ucos-iii\Source\os_msg.c():                                  |           0              |         570              |
-..\ucos-iii\Source\os_mutex.c():                                |           0              |        1784              |
+..\ucos-iii\Source\os_mutex.c():                                |           0              |        2824              |
 ..\ucos-iii\Source\os_prio.c():                                 |           4              |         140              |
 ..\ucos-iii\Source\os_q.c():                                    |           0              |        1464              |
 ..\ucos-iii\Source\os_sem.c():                                  |           0              |        1400              |
@@ -228,12 +231,12 @@
 LR_VECTOR
         RAM 1              [0x20000000 | 0x00010000 (65536)]
                 [zi start] 1   [zi end] 20
-                RW_IRAM1   [0x20000000]|¡ö¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ______________________________| (  26.6 KB /  64.0 KB )  41.6%  
+                RW_IRAM1   [0x20000000]|¡ö¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ______________________________| (  26.7 KB /  64.0 KB )  41.7%  
  
         FLASH 1            [0x08000000 | 0x00080000 (524288)]
-                ER_VECTOR  [0x08000000]|¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö__________________________________| (  41.1 KB / 128.0 KB )  32.2%  
+                ER_VECTOR  [0x08000000]|¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö__________________________________| (  43.0 KB / 128.0 KB )  33.6%  
  
 [htm file path] D:\claude\downloader\downloader\RVMDK\D:\output\MDK\IL-800\DEBUG\IL_800_debug.htm
 =============================================================================================================================
 
-run time: 0.155 s
+run time: 0.085 s
