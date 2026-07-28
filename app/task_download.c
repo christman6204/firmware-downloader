@@ -80,7 +80,7 @@
 #include "includes.h"
 #include "task_download.h"
 #include "task_key.h"
-#include "task_buzzer.h"
+#include "task_led_wdg.h"
 #include "protocol.h"
 #include "crc32.h"
 #include "sd_card.h"
@@ -113,19 +113,6 @@ static uint8_t g_tx_buf[FRAME_MAX_TOTAL];
 static uint8_t g_reply_content[FRAME_MAX_CMD_LEN];
 static uint8_t g_seg_buf[APP_SEGMENT_SIZE];
 
-/*---------------------------------------------------------------------------*/
-/* DL_Beep：向蜂鸣器任务投递命令（指针即数值，见 task_buzzer.h）              */
-/*---------------------------------------------------------------------------*/
-static void DL_Beep(uint32_t cmd)
-{
-    OS_ERR err;
-    OSQPost(&g_buzzer_cmd_q,
-            (void *)(CPU_ADDR)cmd,
-            sizeof(uint32_t),
-            OS_OPT_POST_FIFO,
-            &err);
-    /* 队列满时忽略：最坏丢失一次鸣响提示，不影响下载流程 */
-}
 
 /*---------------------------------------------------------------------------*/
 /* DL_SendAndWait：发送一帧 -> 等待应答 -> 解析                              */
@@ -275,7 +262,7 @@ void AppTask_Download(void *p_arg)
                 if (next == DATA_SRC_SD_CARD) {
                     if (!SD_IsPresent()) {
                         /* SD 卡不在：报错并保持当前数据源 */
-                        DL_Beep(BUZZER_CMD_ERROR);
+                        Buzzer_Request(BUZZER_CMD_ERROR);
                         break;
                     }
                 }
@@ -289,7 +276,7 @@ void AppTask_Download(void *p_arg)
             }
             else if (evt == KEY_EVT_B2_SHORT) {
                 /* 启动下载：短鸣反馈 -> 加锁 -> 进入 SD_CHECK */
-                DL_Beep(BUZZER_CMD_SHORT);
+                Buzzer_Request(BUZZER_CMD_SHORT);
                 SysState_SetTransferLock(1u);
                 start_tick = OSTimeGet(&err);
                 state = DL_STATE_SD_CHECK;
@@ -308,7 +295,7 @@ void AppTask_Download(void *p_arg)
             if (src == DATA_SRC_SD_CARD) {
                 /* ---- SD 卡源 ---- */
                 if (SD_FileOpen() != SD_OK) {
-                    DL_Beep(BUZZER_CMD_ERROR);
+                    Buzzer_Request(BUZZER_CMD_ERROR);
                     SysState_SetTransferLock(0u);
                     state = DL_STATE_IDLE;
                     break;
@@ -320,7 +307,7 @@ void AppTask_Download(void *p_arg)
                     uint8_t  ver_buf[2] = {0u, 0u};
                     uint16_t br_ver = 0u;
                     if (SD_FileRead(ver_buf, 2u, &br_ver) != SD_OK || br_ver != 2u) {
-                        DL_Beep(BUZZER_CMD_ERROR);
+                        Buzzer_Request(BUZZER_CMD_ERROR);
                         SD_FileClose();
                         SysState_SetTransferLock(0u);
                         state = DL_STATE_IDLE;
@@ -333,7 +320,7 @@ void AppTask_Download(void *p_arg)
                 /* 关闭后重开，从头计算整包 CRC32 */
                 SD_FileClose();
                 if (SD_FileOpen() != SD_OK) {
-                    DL_Beep(BUZZER_CMD_ERROR);
+                    Buzzer_Request(BUZZER_CMD_ERROR);
                     SysState_SetTransferLock(0u);
                     state = DL_STATE_IDLE;
                     break;
@@ -359,7 +346,7 @@ void AppTask_Download(void *p_arg)
                 /* 关闭后重开，准备顺序传输（fptr 归零） */
                 SD_FileClose();
                 if (SD_FileOpen() != SD_OK) {
-                    DL_Beep(BUZZER_CMD_ERROR);
+                    Buzzer_Request(BUZZER_CMD_ERROR);
                     SysState_SetTransferLock(0u);
                     state = DL_STATE_IDLE;
                     break;
@@ -649,12 +636,12 @@ void AppTask_Download(void *p_arg)
             if (status == STATUS_UPDATE_OK) {
                 BSP_USART2_Printf("[DWN] Update: OK (%u) - SUCCESS!\r\n",
                                   (unsigned int)STATUS_UPDATE_OK);
-                DL_Beep(BUZZER_CMD_OK);      /* 传输完成 */
+                Buzzer_Request(BUZZER_CMD_OK);      /* 传输完成 */
             }
             else {
                 BSP_USART2_Printf("[DWN] Update: FAIL status=%u\r\n",
                                   (unsigned int)status);
-                DL_Beep(BUZZER_CMD_ERROR);   /* 更新失败 */
+                Buzzer_Request(BUZZER_CMD_ERROR);   /* 更新失败 */
             }
 
             SysState_SetTransferLock(0u);
@@ -675,7 +662,7 @@ void AppTask_Download(void *p_arg)
                               (unsigned int)fw_ver, (unsigned long)fw_total_size);
 
             DL_SendTerminate(fw_ver, fw_total_size);
-            DL_Beep(BUZZER_CMD_ERROR);
+            Buzzer_Request(BUZZER_CMD_ERROR);
 
             SysState_SetTransferLock(0u);
             if (src == DATA_SRC_SD_CARD) {

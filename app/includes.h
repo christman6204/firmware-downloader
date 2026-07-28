@@ -82,7 +82,6 @@
 #include  <sd_card.h>
 #include  <task_key.h>
 #include  <task_led_wdg.h>
-#include  <task_buzzer.h>
 #include  <task_download.h>
 
 /*

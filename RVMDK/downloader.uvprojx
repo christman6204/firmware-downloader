@@ -959,19 +959,9 @@
               <FilePath>..\app\task_key.h</FilePath>
             </File>
             <File>
-              <FileName>task_buzzer.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>..\app\task_buzzer.h</FilePath>
-            </File>
-            <File>
               <FileName>task_key.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\app\task_key.c</FilePath>
-            </File>
-            <File>
-              <FileName>task_buzzer.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\app\task_buzzer.c</FilePath>
             </File>
           </Files>
         </Group>

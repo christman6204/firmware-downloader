@@ -13,7 +13,7 @@
  *   - 收到 KEY_EVT_B2_LONG（Key2 长按）切换固件类型（普通 / 工厂）。
  *   - 通过 USART1（bsp_usart.c）发送协议帧、等待应答（g_usart1_rx_sem）。
  *   - TX LED (PA12) 在每个数据段发送时翻转一次。
- *   - 蜂鸣器反馈通过 g_buzzer_cmd_q (Task 8) 投递命令（指针即数值）。
+ *   - 蜂鸣器反馈通过 Buzzer_Request() 投递命令到 LED+WDG 任务。
  *
  * 协议流程（设计文档第 10 章）：
  *   Start(0) -> Execute(1) x N -> Complete(2) -> Update(4)
@@ -29,7 +29,7 @@
  *     IsTransferLocked/SetTransferLock (Task 5, sys_state.c)
  *   - BSP_LED_Toggle + LED_TX_PORT/PIN (Task 2)
  *   - g_key_event_q + KEY_EVT_* (Task 6, task_key.h)
- *   - g_buzzer_cmd_q + BUZZER_CMD_* (Task 8, task_buzzer.h)
+ *   - Buzzer_Request + BUZZER_CMD_* (task_led_wdg.h)
  *   - APP_* 配置宏 (app_cfg.h)
  *
  * 任务实体与 g_usart1_rx_sem 的创建由其它任务负责（bsp_usart.c 创建信号量，

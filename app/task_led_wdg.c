@@ -1,6 +1,6 @@
 /* app/task_led_wdg.c
  *
- * LED + 喂狗合并任务实现。详见 task_led_wdg.h 顶部说明。
+ * LED + 喂狗 + 蜂鸣器合并任务实现。详见 task_led_wdg.h 顶部说明。
  *
  * 关键点：
  *   - 50ms 任务周期：OSTimeDlyHMSM(0,0,0,50, OS_OPT_TIME_HMSM_STRICT, &err)。
@@ -13,9 +13,12 @@
  *     幂等操作，无需状态跟踪。
  *   - 喂狗：wdg_ms 每 50ms +50，达到 2000ms 调用 BSP_IWDG_Feed() 并清零。
  *     IWDG 超时 4s，喂狗间隔 2s，留 50% 余量。
+ *   - 蜂鸣器状态机：每 50ms tick 更新一次，非阻塞。外部通过 Buzzer_Request()
+ *     写入命令，本任务在循环中消费并执行 ON/OFF 时序。
  *
  * 依赖：
  *   - BSP_LED_On/Off/Toggle (Task 2)            低电平有效
+ *   - BSP_Buzzer_On/Off (Task 2)                蜂鸣器高电平有效
  *   - BSP_IWDG_Feed (Task 2)                    IWDG 4s 超时
  *   - SysState_GetLEDBlinkPeriod (Task 5)       返回 500/1500 ms
  *   - SysState_GetFwType (Task 5)               返回 FW_FACTORY/FW_NORMAL
@@ -25,6 +28,14 @@
 #include "includes.h"
 #include "task_led_wdg.h"
 #include "sys_state.h"
+
+/* ---- Buzzer 共享请求 ---- */
+static volatile BuzzerCmd_t g_buzzer_cmd = BUZZER_CMD_NONE;  /* 外部写入，本任务读取 */
+
+void Buzzer_Request(BuzzerCmd_t cmd)
+{
+    g_buzzer_cmd = cmd;  /* 覆盖当前命令；非阻塞 */
+}
 
 void AppTask_LED_WDG(void *p_arg)
 {
@@ -59,6 +70,67 @@ void AppTask_LED_WDG(void *p_arg)
 
         tick_ms += 50;
         if (tick_ms >= 3000) tick_ms = 0;  /* 500 和 1500 的公倍数，防累积漂移 */
+
+        /* ---- Buzzer state machine ---- */
+        {
+            static uint16_t buzzer_on_ms  = 0;
+            static uint16_t buzzer_off_ms = 0;
+            static uint8_t  buzzer_repeat = 0;
+            static BuzzerCmd_t buzzer_pattern = BUZZER_CMD_NONE;
+
+            if (g_buzzer_cmd != BUZZER_CMD_NONE) {
+                /* New command: load pattern parameters */
+                switch (g_buzzer_cmd) {
+                case BUZZER_CMD_BOOT:
+                case BUZZER_CMD_SHORT:
+                    buzzer_on_ms  = 500;
+                    buzzer_off_ms = 0;
+                    buzzer_repeat = 1;
+                    break;
+                case BUZZER_CMD_LONG:
+                case BUZZER_CMD_OK:
+                    buzzer_on_ms  = 1500;
+                    buzzer_off_ms = 0;
+                    buzzer_repeat = 1;
+                    break;
+                case BUZZER_CMD_ERROR:
+                    buzzer_on_ms  = 500;
+                    buzzer_off_ms = 500;
+                    buzzer_repeat = 4;
+                    break;
+                default:
+                    break;
+                }
+                buzzer_pattern = g_buzzer_cmd;
+                g_buzzer_cmd = BUZZER_CMD_NONE;  /* consumed */
+                BSP_Buzzer_On();                 /* start first ON phase */
+            }
+
+            if (buzzer_repeat > 0 && buzzer_on_ms > 0) {
+                /* ON phase */
+                if (buzzer_on_ms <= 50) {
+                    BSP_Buzzer_Off();
+                    buzzer_on_ms = 0;
+                    buzzer_repeat--;
+                    if (buzzer_repeat > 0 && buzzer_off_ms > 0) {
+                        /* Start gap phase */
+                    } else if (buzzer_repeat == 0 || buzzer_off_ms == 0) {
+                        /* Done or no gap */
+                        buzzer_pattern = BUZZER_CMD_NONE;
+                    }
+                } else {
+                    buzzer_on_ms -= 50;
+                }
+            } else if (buzzer_repeat > 0 && buzzer_off_ms > 0) {
+                /* OFF (gap) phase */
+                if (buzzer_off_ms <= 50) {
+                    BSP_Buzzer_On();
+                    buzzer_off_ms = (buzzer_pattern == BUZZER_CMD_ERROR) ? 500 : 0;
+                } else {
+                    buzzer_off_ms -= 50;
+                }
+            }
+        }
 
         OSTimeDlyHMSM(0, 0, 0, 50, OS_OPT_TIME_HMSM_STRICT, &err);
     }

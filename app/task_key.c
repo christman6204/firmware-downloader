@@ -58,18 +58,18 @@
  *   - 短按：释放时 press_ticks>0 且未触发长按 -> 短按事件（仅 Key2）。
  *   - 传输锁定（SysState_IsTransferLocked）：所有按键动作完全无响应
  *     （不鸣响、不投递事件）。锁定状态在动作触发时刻判定。
- *   - 指针即数值：OSQPost 第二参数直接强转事件/命令码（见 task_buzzer.h）。
+ *   - 蜂鸣器命令通过 Buzzer_Request() 直接写入 LED+WDG 任务共享变量（非队列）。
  *   - 队列满时 OSQPost 失败由发送侧忽略（最坏情况丢失一次按键事件）。
  *
  * 依赖：
  *   - BSP_Key_Read (Task 2)            0=按下 1=释放
  *   - SysState_IsTransferLocked (Task 5)
- *   - g_buzzer_cmd_q + BUZZER_CMD_* (Task 8)
+ *   - Buzzer_Request + BUZZER_CMD_* (task_led_wdg.h)
  *   - g_key_event_q（本模块定义，Task 10 中 OSQCreate 初始化）
  */
 #include "includes.h"
 #include "task_key.h"
-#include "task_buzzer.h"
+#include "task_led_wdg.h"
 #include "sys_state.h"
 
 /*---------------------------------------------------------------------------*/
@@ -138,11 +138,7 @@ static void Key_Scan(KeyState_t *ks, uint8_t key_id)
             /* 传输锁定 -> 完全无响应（无声、无事件） */
             if (!SysState_IsTransferLocked()) {
                 /* 长按蜂鸣（达阈值时刻） */
-                OSQPost(&g_buzzer_cmd_q,
-                        (void *)(CPU_ADDR)BUZZER_CMD_LONG,
-                        sizeof(uint32_t),
-                        OS_OPT_POST_FIFO,
-                        &err);
+                Buzzer_Request(BUZZER_CMD_LONG);
                 /* 长按事件：Key1=切换数据源, Key2=切换固件类型 */
                 if (key_id == KEY_ID_1) {
                     OSQPost(&g_key_event_q,
@@ -166,11 +162,7 @@ static void Key_Scan(KeyState_t *ks, uint8_t key_id)
             /* 短按：仅 Key2 响应（Key1 短按无动作） */
             if (key_id == KEY_ID_2 && !SysState_IsTransferLocked()) {
                 /* 短按蜂鸣（释放时刻） */
-                OSQPost(&g_buzzer_cmd_q,
-                        (void *)(CPU_ADDR)BUZZER_CMD_SHORT,
-                        sizeof(uint32_t),
-                        OS_OPT_POST_FIFO,
-                        &err);
+                Buzzer_Request(BUZZER_CMD_SHORT);
                 /* 短按事件：启动下载 */
                 OSQPost(&g_key_event_q,
                         (void *)(CPU_ADDR)KEY_EVT_B2_SHORT,

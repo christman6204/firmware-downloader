@@ -6,20 +6,17 @@
 /* 内核占用: Tick=10, Tmr=22, Stat=23, Idle=31 */
 #define  APP_TASK_START_PRIO          26u
 #define  APP_TASK_KEY_PRIO            25u
-#define  APP_TASK_BUZZER_PRIO         24u
 #define  APP_TASK_LED_WDG_PRIO        28u
 #define  APP_TASK_DOWNLOAD_PRIO       20u
 
 /* ==================== 任务栈（CPU_STK = 4字节） ==================== */
 #define  APP_TASK_START_STK_SIZE      272u   /* 1088B */
 #define  APP_TASK_KEY_STK_SIZE        256u   /* 1024B */
-#define  APP_TASK_BUZZER_STK_SIZE     256u   /* 1024B */
 #define  APP_TASK_LED_WDG_STK_SIZE    256u   /* 1024B */
 #define  APP_TASK_DOWNLOAD_STK_SIZE   1024u  /* 4096B */
 
 /* ==================== IPC 参数 ==================== */
 #define  APP_KEY_Q_SIZE               8u
-#define  APP_BUZZER_Q_SIZE            8u
 
 /* ==================== 按键参数 ==================== */
 #define  APP_KEY_DEBOUNCE_MS          20u

@@ -18,7 +18,7 @@
  * ---------------------------------------------------------------------------
  * OSQPost 消息约定 -- 指针即数值（pointer-as-value）
  * ---------------------------------------------------------------------------
- * 与 task_buzzer.h 相同约定：把事件码本身当作指针投递，不在发送侧分配
+ * 指针即数值约定：把事件码本身当作指针投递，不在发送侧分配
  * 任何缓冲区。消费方（下载任务 Task 9）从 OSQPend 取回 p_msg 后直接强转：
  *
  *   void    *p_msg = OSQPend(...);
@@ -28,7 +28,7 @@
  *   - UCOS-III OS_Q（Task 1 已在 os_cfg.h 使能 OS_CFG_Q_EN=1）
  *   - BSP_Key_Read (Task 2, bsp_gpio.c)  0=按下 1=释放
  *   - SysState_IsTransferLocked (Task 5, sys_state.c)
- *   - g_buzzer_cmd_q + BUZZER_CMD_* (Task 8, task_buzzer.h)
+ *   - Buzzer_Request + BUZZER_CMD_* (task_led_wdg.h)
  *   - APP_KEY_LONG_PRESS_TICKS (app_cfg.h)
  *
  * 任务实体与 g_key_event_q 的创建由 Task 10 (app.c) 负责，本头文件只
