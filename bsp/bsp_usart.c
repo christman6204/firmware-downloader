@@ -50,6 +50,12 @@ void BSP_USART_Init(void)
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
     /* GPIOD 时钟已在 BSP_GPIO_Init 中开启 */
 
+    /* 使能 AFIO 时钟并应用 USART2 部分重映射：PA2/PA3 -> PD5/PD6。
+       不重映射时 USART2 默认在 PA2/PA3，会导致 PD5/PD6 上无信号，
+       且 PA3（蜂鸣器）会被 USART2_TX 占用，与 GPIO 输出冲突。 */
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_AFIO, ENABLE);
+    GPIO_PinRemapConfig(GPIO_Remap_USART2, ENABLE);
+
     GPIO_InitStruct.GPIO_Pin   = GPIO_Pin_5;
     GPIO_InitStruct.GPIO_Mode  = GPIO_Mode_AF_PP;
     GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
