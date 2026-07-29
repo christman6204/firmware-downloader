@@ -32,10 +32,10 @@
 
 [region info]
 [load region] LR_VECTOR
-	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000AC10 [memory type] 2 [memory ID] 3
+	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000ABF0 [memory type] 2 [memory ID] 3
 
-	[execution region] RW_IRAM1, 0x20000000, 0x00010000, 0x00006AE0 [memory type] 1 [memory ID] 2
-		[ZI block] addr: 0x20000138, size: 0x000069A8 (27048)
+	[execution region] RW_IRAM1, 0x20000000, 0x00010000, 0x000065F0 [memory type] 1 [memory ID] 2
+		[ZI block] addr: 0x20000140, size: 0x000064B0 (25776)
 
 
 [object name max length] 22
@@ -86,7 +86,6 @@
 [object name] stm32f10x_usart.o       [path] ..\Libraries\FWlib\src\stm32f10x_usart.c
 [object name] sys_state.o             [path] ..\app\sys_state.c
 [object name] system_stm32f10x.o      [path] ..\Libraries\CMSIS\system_stm32f10x.c
-[object name] task_buzzer.o           [path] ..\app\task_buzzer.c
 [object name] task_download.o         [path] ..\app\task_download.c
 [object name] task_key.o              [path] ..\app\task_key.c
 [object name] task_led_wdg.o          [path] ..\app\task_led_wdg.c
@@ -161,7 +160,6 @@
 [old name] task_download.c         [type] 1   [path] ..\app\task_download.c
 [old name] task_led_wdg.c          [type] 1   [path] ..\app\task_led_wdg.c
 [old name] task_key.c              [type] 1   [path] ..\app\task_key.c
-[old name] task_buzzer.c           [type] 1   [path] ..\app\task_buzzer.c
 [old name] aes.c                   [type] 1   [path] ..\Libraries\mbedtls\library\aes.c
 [old name] sha256.c                [type] 1   [path] ..\Libraries\mbedtls\library\sha256.c
 [old name] md.c                    [type] 1   [path] ..\Libraries\mbedtls\library\md.c
@@ -173,12 +171,12 @@
 
 [record region info]
 [load region] LR_VECTOR
-	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000AC10 [type] 2 [ID] 3
-	[execution region] RW_IRAM1, 0x20000000, 0x00010000, 0x00006AE0 [type] 1 [ID] 2
+	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000ABF0 [type] 2 [ID] 3
+	[execution region] RW_IRAM1, 0x20000000, 0x00010000, 0x000065F0 [type] 1 [ID] 2
 -----------------------------------------------------------------------------------------------------------------------
                              FILE(s)                            |         RAM (byte)       |       FLASH (byte)       |
 -----------------------------------------------------------------------------------------------------------------------
-..\app\app.c():                                                 |        9256              |         600              |
+..\app\app.c():                                                 |        8032              |         496              |
 ..\bsp\bsp.c():                                                 |           0              |         160              |
 ..\bsp\bsp_gpio.c():                                            |           0              |         360              |
 ..\bsp\bsp_iwdg.c():                                            |           0              |          42              |
@@ -222,21 +220,20 @@
 ..\Libraries\FWlib\src\stm32f10x_usart.c():                     |           0              |         442              |
 ..\app\sys_state.c():                                           |          47              |         379              |
 ..\Libraries\CMSIS\system_stm32f10x.c():                        |           0              |         328              |
-..\app\task_buzzer.c():                                         |          48              |         174              |
-..\app\task_download.c():                                       |         876              |        2932              |
-..\app\task_key.c():                                            |          64              |         304              |
-..\app\task_led_wdg.c():                                        |           0              |         132              |
+..\app\task_download.c():                                       |         876              |        2904              |
+..\app\task_key.c():                                            |          64              |         280              |
+..\app\task_led_wdg.c():                                        |           8              |         440              |
 -----------------------------------------------------------------------------------------------------------------------
 [memory print mode]: 0
 LR_VECTOR
         RAM 1              [0x20000000 | 0x00010000 (65536)]
-                [zi start] 1   [zi end] 20
-                RW_IRAM1   [0x20000000]|¡ö¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ______________________________| (  26.7 KB /  64.0 KB )  41.7%  
+                [zi start] 1   [zi end] 19
+                RW_IRAM1   [0x20000000]|¡ö¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ_______________________________| (  25.4 KB /  64.0 KB )  39.8%  
  
         FLASH 1            [0x08000000 | 0x00080000 (524288)]
-                ER_VECTOR  [0x08000000]|¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö__________________________________| (  43.0 KB / 128.0 KB )  33.6%  
+                ER_VECTOR  [0x08000000]|¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö__________________________________| (  42.9 KB / 128.0 KB )  33.6%  
  
 [htm file path] D:\claude\downloader\downloader\RVMDK\D:\output\MDK\IL-800\DEBUG\IL_800_debug.htm
 =============================================================================================================================
 
-run time: 0.085 s
+run time: 0.104 s

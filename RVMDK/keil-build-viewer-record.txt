@@ -1,5 +1,5 @@
       Code (inc. data)   RO Data    RW Data    ZI Data      Debug   Object Name
-       600          0          0          0       9256          0   app.o
+       496          0          0          0       8032          0   app.o
        160          0          0          0          0          0   bsp.o
        360          0          0          0          0          0   bsp_gpio.o
         42          0          0          0          0          0   bsp_iwdg.o
@@ -43,18 +43,17 @@
        442          0          0          0          0          0   stm32f10x_usart.o
        376          0          0          3         44          0   sys_state.o
        328          0          0          0          0          0   system_stm32f10x.o
-       174          0          0          0         48          0   task_buzzer.o
-      2856          0         76          0        876          0   task_download.o
-       288          0          0         16         48          0   task_key.o
-       132          0          0          0          0          0   task_led_wdg.o
+      2828          0         76          0        876          0   task_download.o
+       264          0          0         16         48          0   task_key.o
+       432          0          0          8          0          0   task_led_wdg.o
 Object Totals
 
 Memory Map of the image
 
 	Load Region LR_VECTOR 
 
-		Execution Region ER_VECTOR (Exec base: 0x08000000, Size: 0x0000AC10, Max: 0x00020000, END)
+		Execution Region ER_VECTOR (Exec base: 0x08000000, Size: 0x0000ABF0, Max: 0x00020000, END)
 
-		Execution Region RW_IRAM1 (Exec base: 0x20000000, Size: 0x00006AE0, Max: 0x00010000, END)
+		Execution Region RW_IRAM1 (Exec base: 0x20000000, Size: 0x000065F0, Max: 0x00010000, END)
 
 Image component sizes

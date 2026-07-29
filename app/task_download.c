@@ -360,6 +360,16 @@ void AppTask_Download(void *p_arg)
                 fw_total_size = APP_FLASH_APP_MAX_SIZE;   /* 300KB */
                 fw_ver = (uint16_t)((uint16_t)flash_ptr[0]
                           | ((uint16_t)flash_ptr[1] << 8));
+
+                /* 版本为 0xFFFF 表示未写入固件，禁止传输 */
+                if (fw_ver == 0xFFFFu) {
+                    BSP_USART2_Printf("[DWN] Flash: version=0xFFFF (no firmware), aborting.\r\n");
+                    Buzzer_Request(BUZZER_CMD_ERROR);
+                    SysState_SetTransferLock(0u);
+                    state = DL_STATE_IDLE;
+                    break;
+                }
+
                 fw_crc = CRC32_Calc(flash_ptr, fw_total_size);
                 /* MCU Flash 源无 fptr 概念，sd_fptr 不使用 */
             }
