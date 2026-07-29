@@ -1,0 +1,22 @@
+# Build outputs
+RVMDK/Listings/
+*.uvguix.*
+*.uvoptx
+*.bak
+*.dep
+JLinkLog.txt
+
+# Python
+__pycache__/
+Tests/*.pyc
+
+# Temp files
+_*.txt
+.superpowers/
+ff_r0.15/
+
+# IDE
+*.scvd
+
+# Keep debug.sct and .ini as they're project files
+!scatter/debug.ini
