@@ -442,7 +442,7 @@ void AppTask_Download(void *p_arg)
             Proto_BuildStartCmd(fw_type_code, fw_ver, fw_total_size, fw_crc,
                                 g_tx_buf, &len);
             status = DL_SendAndWait(g_tx_buf, len, &rtype, &status,
-                                    g_reply_content, &clen);
+                                    g_reply_content, &clen,
                                     APP_CMD_TIMEOUT_TICKS);
 
             if (status == STATUS_START_OK) {
@@ -550,7 +550,7 @@ void AppTask_Download(void *p_arg)
                               (float)(offset * 100.0 / (double)fw_total_size));
 
             status = DL_SendAndWait(g_tx_buf, len, &rtype, &status,
-                                    g_reply_content, &clen);
+                                    g_reply_content, &clen,
                                     APP_CMD_TIMEOUT_TICKS);
 
             if (status == STATUS_DATA_OK) {
@@ -645,7 +645,7 @@ void AppTask_Download(void *p_arg)
             Proto_BuildCompleteCmd(fw_type_code, fw_ver, fw_total_size, fw_crc,
                                    g_tx_buf, &len);
             status = DL_SendAndWait(g_tx_buf, len, &rtype, &status,
-                                    g_reply_content, &clen);
+                                    g_reply_content, &clen,
                                     APP_CMD_COMPLETE_TIMEOUT_TICKS);
 
             if (status == STATUS_COMPLETE_OK) {
@@ -685,7 +685,7 @@ void AppTask_Download(void *p_arg)
 
             Proto_BuildUpdateCmd(update_type, g_tx_buf, &len);
             status = DL_SendAndWait(g_tx_buf, len, &rtype, &status,
-                                    g_reply_content, &clen);
+                                    g_reply_content, &clen,
                                     APP_CMD_TIMEOUT_TICKS);
 
             if (status == STATUS_UPDATE_OK) {
