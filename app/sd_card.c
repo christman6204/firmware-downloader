@@ -321,26 +321,24 @@ void SD_FileClose(void)
 }
 
 /*---------------------------------------------------------------------------*/
-/* SD_SpeedTest: 块级读写测速                                                 */
-/*   测试扇区: 10~13 (MBR 与分区1之间的保留区，不含文件系统数据，安全)          */
-/*   写: 2048 字节(4扇区) pattern -> 读回校验                                   */
-/*   读: 2048 字节(4扇区) 测速                                                 */
+/* SD_SpeedTest: 块级读测速（写测试已注释，保留读测试）                        */
+/*   测试扇区: 0~3 (MBR + 保留区), 4 扇区 = 2048 字节                          */
 /*---------------------------------------------------------------------------*/
 #include <string.h>
 void SD_SpeedTest(void)
 {
-    #define SPEED_TEST_SECTOR  10u
+    #define SPEED_TEST_SECTOR  0u
     #define SPEED_TEST_NSEC    4u                          /* 4 扇区 = 2048 字节 */
-    static uint8_t wbuf[SPEED_TEST_NSEC * SD_BLOCK_SIZE];  /* 2048B 写缓冲 */
     static uint8_t rbuf[SPEED_TEST_NSEC * SD_BLOCK_SIZE];  /* 2048B 读缓冲 */
     OS_ERR  err;
     uint32_t i, start, elapsed, bytes;
 
-    BSP_USART2_Printf("\r\n[SD] ===== Speed Test (sectors %lu~%lu, %lu bytes) =====\r\n",
+    BSP_USART2_Printf("\r\n[SD] ===== Read Speed Test (sectors %lu~%lu, %lu bytes) =====\r\n",
                       (unsigned long)SPEED_TEST_SECTOR,
                       (unsigned long)(SPEED_TEST_SECTOR + SPEED_TEST_NSEC - 1u),
                       (unsigned long)(SPEED_TEST_NSEC * SD_BLOCK_SIZE));
 
+#if 0  /* ---- 写测试已注释（避免写入 SD 卡） ---- */
     /* ---- 填充测试 pattern ---- */
     for (i = 0u; i < sizeof(wbuf); i++) {
         wbuf[i] = (uint8_t)(i ^ 0xA5u);
@@ -356,7 +354,7 @@ void SD_SpeedTest(void)
         }
     }
     {
-        uint32_t w_elapsed = OSTimeGet(&err) - start;     /* 500Hz tick = 2ms/tick */
+        uint32_t w_elapsed = OSTimeGet(&err) - start;
         uint32_t w_bytes = SPEED_TEST_NSEC * SD_BLOCK_SIZE;
         uint32_t w_kbs   = (w_bytes * 500u / w_elapsed) / 1024u;
         uint32_t w_frac  = ((w_bytes * 500u * 100u / w_elapsed) / 1024u) % 100u;
@@ -364,8 +362,9 @@ void SD_SpeedTest(void)
                           (unsigned long)w_bytes, (unsigned long)(w_elapsed * 2u),
                           (unsigned long)w_kbs, (unsigned long)w_frac);
     }
+#endif /* 写测试已注释 */
 
-    /* ---- 读回校验 + 读测速 ---- */
+    /* ---- 读测速: 4 扇区 ---- */
     start = OSTimeGet(&err);
     for (i = 0u; i < SPEED_TEST_NSEC; i++) {
         if (SD_SPI_ReadBlock(SPEED_TEST_SECTOR + i, &rbuf[i * SD_BLOCK_SIZE]) != 0u) {
@@ -376,13 +375,6 @@ void SD_SpeedTest(void)
     }
     elapsed = OSTimeGet(&err) - start;
     bytes = SPEED_TEST_NSEC * SD_BLOCK_SIZE;
-
-    /* ---- 校验数据 ---- */
-    if (memcmp(rbuf, wbuf, sizeof(wbuf)) != 0) {
-        BSP_USART2_Printf("[SD] Verify FAIL (data mismatch)\r\n");
-    } else {
-        BSP_USART2_Printf("[SD] Verify OK\r\n");
-    }
 
     /* ---- 读速度 ---- */
     {
