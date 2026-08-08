@@ -71,6 +71,16 @@ void BSP_USART_Init(void)
 
     /* 创建接收信号量 */
     OSSemCreate(&g_usart1_rx_sem, "USART1 RX", 0, &err);
+
+    /* USART1 上电自测：发送测试字符串，验证 TX 硬件正常 */
+    {
+        const char *test = "USART1_TX_OK\r\n";
+        while (*test) {
+            while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
+            USART_SendData(USART1, (uint16_t)*test++);
+        }
+        while (USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET);
+    }
 }
 
 void BSP_USART1_Send(const uint8_t *buf, uint16_t len)
