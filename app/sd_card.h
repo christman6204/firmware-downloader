@@ -75,4 +75,7 @@ void SD_FileClose(void);
 /*---------------------------------------------------------------------------*/
 void SD_SpeedTest(void);
 
+/* 打印 SD 卡信息：卡类型、CSD 版本、总容量、分区1信息（起始/大小/类型） */
+void SD_PrintInfo(void);
+
 #endif /* __SD_CARD_H */

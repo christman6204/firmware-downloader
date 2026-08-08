@@ -12,4 +12,8 @@ uint8_t SD_SPI_Init(void);
 uint8_t SD_SPI_ReadBlock(uint32_t addr, uint8_t *buf);
 uint8_t SD_SPI_WriteBlock(uint32_t addr, const uint8_t *buf);
 
+/* 读 CSD 寄存器 (CMD9)，返回 16 字节 CSD 数据到 csd[16]。
+   成功返回 0。用于查询卡容量等。 */
+uint8_t SD_SPI_ReadCSD(uint8_t csd[16]);
+
 #endif

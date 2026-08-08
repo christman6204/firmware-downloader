@@ -308,3 +308,40 @@ uint8_t SD_SPI_WriteBlock(uint32_t addr, const uint8_t *buf)
     CPU_CRITICAL_EXIT();
     return 0;
 }
+
+/*
+ * CMD9: SEND_CSD，读 16 字节 CSD 寄存器（不涉及块地址，无需 SDSC 转换）。
+ * 用于查询卡容量、CSD 版本等。
+ *   1. CS_Low + SendCmd(CMD9, 0, 0xFF)
+ *   2. 等 R1=0x00
+ *   3. 等 Data Token=0xFE
+ *   4. 读 16 字节 CSD + 2 字节 CRC
+ *   5. CS_High + dummy
+ */
+uint8_t SD_SPI_ReadCSD(uint8_t csd[16])
+{
+    CPU_SR_ALLOC();
+
+    CPU_CRITICAL_ENTER();
+    BSP_SD_CS_Low();
+    SD_SendCmd(0x09u, 0x00000000u, 0xFFu);                  /* CMD9 */
+
+    if (SD_GetResponse(0x00u)) {                            /* R1 */
+        BSP_SD_CS_High(); SPI2_SendRecv(0xFF);
+        CPU_CRITICAL_EXIT();
+        return 1;
+    }
+    if (SD_GetResponse(0xFEu)) {                            /* Data Token */
+        BSP_SD_CS_High(); SPI2_SendRecv(0xFF);
+        CPU_CRITICAL_EXIT();
+        return 2;
+    }
+    for (uint8_t i = 0; i < 16u; i++) {
+        csd[i] = SPI2_SendRecv(0xFF);
+    }
+    (void)SPI2_SendRecv(0xFF); (void)SPI2_SendRecv(0xFF);   /* CRC16 */
+
+    BSP_SD_CS_High(); SPI2_SendRecv(0xFF);
+    CPU_CRITICAL_EXIT();
+    return 0;
+}

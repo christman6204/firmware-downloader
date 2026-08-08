@@ -292,3 +292,76 @@ void SD_SpeedTest(void)
 
     BSP_USART2_Printf("[SD] ===== Test Done =====\r\n");
 }
+
+/*---------------------------------------------------------------------------*/
+/* SD_PrintInfo: 打印卡容量 + 分区信息                                        */
+/*   CMD9 读 CSD -> 算总容量                                                  */
+/*   读扇区0(MBR) -> 解析分区1                                                */
+/*---------------------------------------------------------------------------*/
+void SD_PrintInfo(void)
+{
+    uint8_t csd[16];
+    uint32_t capacity_bytes = 0u;
+    uint32_t capacity_mb = 0u;
+
+    BSP_USART2_Printf("\r\n[SD] ===== Card Info =====\r\n");
+
+    /* ---- 卡类型 ---- */
+    BSP_USART2_Printf("[SD] Type: %s\r\n", g_card_blockaddr ? "SDHC/SDXC" : "SDSC");
+
+    /* ---- CMD9 读 CSD, 算容量 ---- */
+    if (SD_SPI_ReadCSD(csd) != 0u) {
+        BSP_USART2_Printf("[SD] CMD9 (ReadCSD) fail\r\n");
+    } else {
+        uint8_t csd_ver = (csd[0] >> 6) & 0x03u;   /* CSD_STRUCTURE */
+        BSP_USART2_Printf("[SD] CSD version: %u\r\n", (unsigned)csd_ver);
+
+        if (csd_ver == 0u) {
+            /* CSD v1.0 (SDSC) */
+            uint32_t read_bl_len = csd[5] & 0x0Fu;
+            uint32_t c_size = ((uint32_t)(csd[6] & 0x03u) << 10)
+                            | ((uint32_t)csd[7] << 2)
+                            | ((uint32_t)csd[8] >> 6);
+            uint32_t c_size_mult = ((uint32_t)(csd[9] & 0x03u) << 1)
+                                 | ((uint32_t)csd[10] >> 7);
+            uint32_t block_len = 1u << read_bl_len;
+            uint32_t mult = 1u << (c_size_mult + 2u);
+            uint32_t block_nr = (c_size + 1u) * mult;
+            capacity_bytes = block_nr * block_len;
+        } else if (csd_ver == 1u) {
+            /* CSD v2.0 (SDHC/SDXC) */
+            uint32_t c_size = ((uint32_t)(csd[7] & 0x3Fu) << 16)
+                            | ((uint32_t)csd[8] << 8)
+                            | (uint32_t)csd[9];
+            capacity_bytes = (c_size + 1u) * 512u * 1024u;   /* 512KB 单位 */
+        }
+        capacity_mb = capacity_bytes / (1024u * 1024u);
+        BSP_USART2_Printf("[SD] Capacity: %lu MB (%lu bytes, %lu sectors)\r\n",
+                          (unsigned long)capacity_mb,
+                          (unsigned long)capacity_bytes,
+                          (unsigned long)(capacity_bytes / 512u));
+    }
+
+    /* ---- 读 MBR, 解析分区1 ---- */
+    {
+        static uint8_t mbr[SD_BLOCK_SIZE];
+        if (SD_SPI_ReadBlock(0u, mbr) != 0u) {
+            BSP_USART2_Printf("[SD] Read MBR fail\r\n");
+        } else {
+            uint8_t  ptype = mbr[0x1C2u];
+            uint32_t p_start = (uint32_t)mbr[0x1C6u]
+                             | ((uint32_t)mbr[0x1C7u] << 8)
+                             | ((uint32_t)mbr[0x1C8u] << 16)
+                             | ((uint32_t)mbr[0x1C9u] << 24);
+            uint32_t p_size = (uint32_t)mbr[0x1CAu]
+                            | ((uint32_t)mbr[0x1CBu] << 8)
+                            | ((uint32_t)mbr[0x1CCu] << 16)
+                            | ((uint32_t)mbr[0x1CDu] << 24);
+            uint32_t p_mb = p_size / 2u / 1024u;            /* sectors*512/1024/1024 */
+            BSP_USART2_Printf("[SD] Partition1: type=0x%02X start_LBA=%lu size=%lu sectors (%lu MB)\r\n",
+                              (unsigned)ptype, (unsigned long)p_start,
+                              (unsigned long)p_size, (unsigned long)p_mb);
+        }
+    }
+    BSP_USART2_Printf("[SD] ========================\r\n");
+}
