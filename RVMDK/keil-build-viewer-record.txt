@@ -3,7 +3,7 @@
        156          0          0          0          0          0   bsp.o
        360          0          0          0          0          0   bsp_gpio.o
          8          0          0          0          0          0   bsp_iwdg.o
-      1194          0          0          0          0          0   bsp_spi_sd.o
+      1196          0          0          0          0          0   bsp_spi_sd.o
        624          0          0          3        552          0   bsp_usart.o
          0          0          0          0          0          0   core_cm3.o
         52          0          0          0          0          0   cpu_a.o

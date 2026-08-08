@@ -140,11 +140,12 @@ uint8_t SD_SPI_Init(void)
         uint32_t cnt = 0xFFFu;
         uint8_t  r1;
         BSP_SD_CS_Low();
+        /* 发 6 字节命令帧；末尾 8+ 字节轮询响应（低速下第 7~8 字节才到 R1） */
         SPI2_SendRecv(0x40);
         SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
         SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
-        r1 = SPI2_SendRecv(0x95);                  /* 第6字节: CRC+收R1 */
-        while (r1 != 0x01u && --cnt) { r1 = SPI2_SendRecv(0xFF); }
+        SPI2_SendRecv(0x95);
+        do { r1 = SPI2_SendRecv(0xFF); } while (r1 != 0x01u && --cnt);
         BSP_SD_CS_High();
         SPI2_SendRecv(0xFF);
         if (r1 != 0x01u) {
@@ -158,14 +159,14 @@ uint8_t SD_SPI_Init(void)
     /* ---- CMD8: SEND_IF_COND ---- */
     CPU_CRITICAL_ENTER();
     {
-        uint32_t cnt   = 0xFFFu;
+        uint32_t cnt = 0xFFFu;
         uint8_t  r7_r1;
         BSP_SD_CS_Low();
         SPI2_SendRecv(0x48);
         SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
         SPI2_SendRecv(0x01); SPI2_SendRecv(0xAA);
-        r7_r1 = SPI2_SendRecv(0x87);               /* 第6字节: CRC+收R1 */
-        while (r7_r1 == 0xFFu && --cnt) { r7_r1 = SPI2_SendRecv(0xFF); }
+        SPI2_SendRecv(0x87);
+        do { r7_r1 = SPI2_SendRecv(0xFF); } while (r7_r1 == 0xFFu && --cnt);
         if (r7_r1 == 0x01u) {
             (void)SPI2_SendRecv(0xFF); (void)SPI2_SendRecv(0xFF);
             (void)SPI2_SendRecv(0xFF); (void)SPI2_SendRecv(0xFF);
@@ -192,14 +193,14 @@ uint8_t SD_SPI_Init(void)
                 SPI2_SendRecv(0x77);
                 SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
                 SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
-                r55 = SPI2_SendRecv(0xFF);             /* CMD55 第6字节: CRC+收R1 */
-                while (r55 == 0xFFu && --c55) { r55 = SPI2_SendRecv(0xFF); }
+                SPI2_SendRecv(0xFF);
+                do { r55 = SPI2_SendRecv(0xFF); } while (r55 == 0xFFu && --c55);
                 /* ACMD41: arg=0x40000000 (HCS=1) */
                 SPI2_SendRecv(0x69);
                 SPI2_SendRecv(0x40); SPI2_SendRecv(0x00);
                 SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
-                r1 = SPI2_SendRecv(0xFF);              /* ACMD41 第6字节: CRC+收R1 */
-                while (r1 == 0xFFu && --cnt) { r1 = SPI2_SendRecv(0xFF); }
+                SPI2_SendRecv(0xFF);
+                do { r1 = SPI2_SendRecv(0xFF); } while (r1 == 0xFFu && --cnt);
                 BSP_SD_CS_High();
                 SPI2_SendRecv(0xFF);
             }
@@ -240,11 +241,15 @@ uint8_t SD_SPI_ReadBlock(uint32_t addr, uint8_t *buf)
     cnt = 0xFFFu;
     b   = SPI2_SendRecv(0xFF);                      /* CRC发送 + 收 R1（高速下第一个响应字节即 R1） */
     while (b == 0xFFu && --cnt) { b = SPI2_SendRecv(0xFF); }
-    if (b != 0x00u) { BSP_SD_CS_High(); CPU_CRITICAL_EXIT(); return 1; }
+    if (b != 0x00u) { BSP_SD_CS_High(); CPU_CRITICAL_EXIT();
+        BSP_USART2_Printf("[SD] CMD17 R1=0x%02X (addr=%lu)\r\n", b, addr);
+        return 1; }
 
     cnt = 0xFFFu;
     do { b = SPI2_SendRecv(0xFF); } while (b == 0xFFu && --cnt);
-    if (b != 0xFEu) { BSP_SD_CS_High(); CPU_CRITICAL_EXIT(); return 2; }
+    if (b != 0xFEu) { BSP_SD_CS_High(); CPU_CRITICAL_EXIT();
+        BSP_USART2_Printf("[SD] CMD17 token=0x%02X (addr=%lu)\r\n", b, addr);
+        return 2; }
 
     for (uint16_t i = 0; i < SD_BLOCK_SIZE; i++)
         buf[i] = SPI2_SendRecv(0xFF);
