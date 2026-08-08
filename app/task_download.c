@@ -185,6 +185,8 @@ static uint8_t DL_SendAndWait(const uint8_t *frame, uint16_t frame_len,
         if (rx_len > RX_DUMP_LEN && pos < (int)sizeof(hexbuf) - 4) {
             pos += snprintf(hexbuf + pos, sizeof(hexbuf) - pos, " ...");
         }
+        pos += snprintf(hexbuf + pos, sizeof(hexbuf) - pos,
+                        "  [SR=0x%02X]", (unsigned)BSP_USART1_GetRxFlags());
         BSP_USART2_Printf("%s\r\n", hexbuf);
         #undef RX_DUMP_LEN
     }

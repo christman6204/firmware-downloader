@@ -19,5 +19,6 @@ const uint8_t *BSP_USART1_GetRecvBuf(void);
 void           BSP_USART2_Printf(const char *fmt, ...);
 void           BSP_USART1_IRQHandler(void);
 void           BSP_USART1_TIMEOUT_Handler(void);  /* TIM3 超时中断处理 */
+uint8_t        BSP_USART1_GetRxFlags(void);       /* 帧结束时的 SR 错误标志 */
 
 #endif

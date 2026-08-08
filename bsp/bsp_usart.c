@@ -5,6 +5,7 @@ OS_SEM g_usart1_rx_sem;
 
 static uint8_t  g_rx_buf[USART1_RX_BUF_SIZE];
 static volatile uint16_t g_rx_len = 0;
+static volatile uint8_t  g_rx_flags = 0u;   /* 帧结束时的 SR 错误标志 (FE/ORE/NE) */
 static uint8_t  g_rx_byte;
 
 /* ---- 接收超时计时 (TIM3, 10ms 周期) ----
@@ -126,9 +127,15 @@ void BSP_USART1_RecvStart(void)
     OS_ERR err;
     g_rx_len = 0;
     g_rx_timeout = 0u;
+    g_rx_flags = 0u;
     /* 清除残留信号量计数，确保 OSSemPend 真正等到新数据或超时 */
     OSSemSet(&g_usart1_rx_sem, 0u, &err);
     USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
+}
+
+uint8_t BSP_USART1_GetRxFlags(void)
+{
+    return g_rx_flags;
 }
 
 uint16_t BSP_USART1_GetRecvLen(void) { return g_rx_len; }
@@ -167,6 +174,7 @@ void BSP_USART1_IRQHandler(void)
 
         /* 累积超过阈值: 立即上报应用层 */
         if (g_rx_len > RX_FRAME_READY_LEN) {
+            g_rx_flags = (uint8_t)(USART1->SR & (USART_FLAG_ORE | USART_FLAG_NE | USART_FLAG_FE));
             USART_ITConfig(USART1, USART_IT_RXNE, DISABLE);
             OSSemPost(&g_usart1_rx_sem, OS_OPT_POST_1, &err);
         }
@@ -192,6 +200,7 @@ void BSP_USART1_TIMEOUT_Handler(void)
             g_rx_timeout--;
             if (g_rx_timeout == 0u && g_rx_len > 0u) {
                 /* 300ms 无新数据, 帧结束 */
+                g_rx_flags = (uint8_t)(USART1->SR & (USART_FLAG_ORE | USART_FLAG_NE | USART_FLAG_FE));
                 USART_ITConfig(USART1, USART_IT_RXNE, DISABLE);
                 OSSemPost(&g_usart1_rx_sem, OS_OPT_POST_1, &err);
             }
