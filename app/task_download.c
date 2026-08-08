@@ -179,12 +179,14 @@ static uint8_t DL_SendAndWait(const uint8_t *frame, uint16_t frame_len,
     rx_len = BSP_USART1_GetRecvLen();
     rx_data = BSP_USART1_GetRecvBuf();
 
-    /* 记录回复到达时刻，计算实际耗时 */
+    /* 记录回复到达时刻，计算实际耗时 + 相邻字节最大间隔 */
     {
         OS_ERR t_err;
         uint32_t now = OSTimeGet(&t_err);
         uint32_t elapsed_ms = (now - g_send_tick) * 2u;   /* 500Hz tick = 2ms */
-        BSP_USART2_Printf("[DWN] Reply latency: %lu ms\r\n", (unsigned long)elapsed_ms);
+        BSP_USART2_Printf("[DWN] Reply latency: %lu ms, max byte gap: %lu ms\r\n",
+                          (unsigned long)elapsed_ms,
+                          (unsigned long)BSP_USART1_GetRxMaxGapMs());
     }
 
     /* ---- 调试: dump 接收帧 (前 128 字节, 单次打印, 栈占用 408B 安全) ---- */

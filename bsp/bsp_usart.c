@@ -6,6 +6,7 @@ OS_SEM g_usart1_rx_sem;
 static uint8_t  g_rx_buf[USART1_RX_BUF_SIZE];
 static volatile uint16_t g_rx_len = 0;
 static volatile uint8_t  g_rx_flags = 0u;   /* 帧结束时的 SR 错误标志 (FE/ORE/NE) */
+static volatile uint32_t g_rx_max_gap_ms = 0u;  /* 相邻字节最大间隔 (ms) */
 static uint8_t  g_rx_byte;
 
 /* ---- 接收超时计时 (TIM3, 10ms 周期) ----
@@ -128,6 +129,7 @@ void BSP_USART1_RecvStart(void)
     g_rx_len = 0;
     g_rx_timeout = 0u;
     g_rx_flags = 0u;
+    g_rx_max_gap_ms = 0u;
     /* 清除残留信号量计数，确保 OSSemPend 真正等到新数据或超时 */
     OSSemSet(&g_usart1_rx_sem, 0u, &err);
     USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
@@ -136,6 +138,11 @@ void BSP_USART1_RecvStart(void)
 uint8_t BSP_USART1_GetRxFlags(void)
 {
     return g_rx_flags;
+}
+
+uint32_t BSP_USART1_GetRxMaxGapMs(void)
+{
+    return g_rx_max_gap_ms;
 }
 
 uint16_t BSP_USART1_GetRecvLen(void) { return g_rx_len; }
@@ -171,6 +178,22 @@ void BSP_USART1_IRQHandler(void)
         }
         /* 收到新字节: 重置超时计数 */
         g_rx_timeout = RX_TIMEOUT_TICKS;
+
+        /* 测量相邻字节间隔 (ISR 中 OSTimeGet 安全) */
+        {
+            OS_ERR t_err;
+            static uint32_t last_tick = 0u;
+            uint32_t now = OSTimeGet(&t_err);
+            if (g_rx_len == 1u) {
+                last_tick = now;             /* 首字节 */
+            } else {
+                uint32_t gap_ms = (now - last_tick) * 2u;   /* 500Hz -> 2ms */
+                if (gap_ms > g_rx_max_gap_ms) {
+                    g_rx_max_gap_ms = gap_ms;
+                }
+                last_tick = now;
+            }
+        }
 
         /* 累积超过阈值: 立即上报应用层 */
         if (g_rx_len > RX_FRAME_READY_LEN) {

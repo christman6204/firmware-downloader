@@ -20,5 +20,6 @@ void           BSP_USART2_Printf(const char *fmt, ...);
 void           BSP_USART1_IRQHandler(void);
 void           BSP_USART1_TIMEOUT_Handler(void);  /* TIM3 超时中断处理 */
 uint8_t        BSP_USART1_GetRxFlags(void);       /* 帧结束时的 SR 错误标志 */
+uint32_t       BSP_USART1_GetRxMaxGapMs(void);    /* 相邻字节最大间隔 (ms) */
 
 #endif
