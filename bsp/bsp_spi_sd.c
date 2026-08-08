@@ -24,8 +24,7 @@
  *   │   重试 1000 次，等待 R1=0x00（就绪，退出 Idle 态）
  *   │   设计要点：CMD8 失败（v1.x卡）时仍执行 ACMD41，HCS位被忽略
  *   │
- *   └─ 成功 → SD_SPI_SetHighSpeed() 提速至 18MHz (PCLK2/2)
- *             初始化期是 Prescaler_256 ≈ 140kHz (< 400kHz 规范要求)
+ *   └─ 成功 → 全程 18MHz (Prescaler_2)，直接使用（与此硬件一致）
  *
  * ===== CMD17 读块协议 =====
  *
@@ -44,15 +43,25 @@
  * ===== SPI 配置要点 =====
  *
  *   - SPI2: SCK=PB13, MISO=PB14, MOSI=PB15
- *   - 模式: CPOL=0 (空闲低), CPHA=0 (上升沿采样) → SPI_Mode 0（SD 卡标准模式）
+ *   - 模式: CPOL=1 (空闲高), CPHA=1 (第二沿采样) → SPI_Mode 3
  *   - 数据宽度: 8-bit
  *   - 位序: MSB first
  *   - NSS: 软件管理（CS 由 GPIO 手动控制，BSP_SD_CS_Low/High）
- *   - 速度: 初始 ~140kHz (256分频) → 就绪后 18MHz (2分频)
+ *   - 速度: 18MHz (Prescaler_2)
+ *
+ * ===== 超时规范 =====
+ *
+ *   所有 SD 超时基于 UCOS-III OSTimeGet (500Hz = 2ms/tick)，而非固定次数：
+ *     - CMD0/CMD8 响应 : 100ms (50 ticks)
+ *     - ACMD41 就绪    : 1s (500 ticks), 每 10ms 重试一次
+ *     - CMD17 R1/Token : 100ms
+ *
+ *   SD Physical Layer Spec §7.2.2 要求 ACMD41 超时不短于 1s。
  */
 #include "bsp_spi_sd.h"
 #include "bsp_gpio.h"
 #include "bsp_usart.h"   /* BSP_USART2_Printf for [SD] debug */
+#include "os.h"           /* OSTimeGet / OSTimeDlyHMSM for SD timeouts */
 
 void BSP_SPI2_Init(void)
 {
@@ -91,15 +100,6 @@ void BSP_SPI2_Init(void)
     SPI_Cmd(SPI2, ENABLE);
 }
 
-/* SD 初始化完成后将 SPI2 提速至 18MHz (Prescaler_2) 用于正常读写 */
-void SD_SPI_SetHighSpeed(void)
-{
-    SPI_Cmd(SPI2, DISABLE);
-    SPI2->CR1 &= ~SPI_CR1_BR;
-    SPI2->CR1 |= SPI_BaudRatePrescaler_2;
-    SPI_Cmd(SPI2, ENABLE);
-}
-
 static uint8_t SPI2_SendRecv(uint8_t byte)
 {
     while (SPI_I2S_GetFlagStatus(SPI2, SPI_I2S_FLAG_TXE) == RESET);
@@ -108,50 +108,75 @@ static uint8_t SPI2_SendRecv(uint8_t byte)
     return (uint8_t)SPI_I2S_ReceiveData(SPI2);
 }
 
-/* 等待 SD 卡返回指定响应字节（与测试工程一致：最多 4095 次轮询） */
-static uint8_t SD_WaitResponse(uint8_t expected)
+/*
+ * 轮询 SD 响应字节，直到匹配或超时。
+ *
+ * SD Physical Layer Spec §7.2: SPI 模式下每字节传输之间插入的空闲周期
+ * 不受限制，主机须持续读直到收到有效 R1（bit7=0，即非 0xFF）。
+ *
+ * timeout_ms : 超时（毫秒）。命令响应 100ms，ACMD41 就绪 1000ms。
+ * 返回 0 = 收到期望值, 1 = 超时
+ */
+static uint8_t SD_WaitResponse(uint8_t expected, uint32_t timeout_ms)
 {
-    uint32_t count = 0xFFF;
-    uint8_t  r1;
-    do {
-        r1 = SPI2_SendRecv(0xFF);
-    } while (r1 != expected && --count);
-    return (r1 == expected) ? 0u : 1u;   /* 0=成功, 1=超时 */
+    OS_ERR   err;
+    uint32_t start = OSTimeGet(&err);           /* 当前 OS tick (500Hz, 2ms/tick) */
+    uint32_t deadline_tick = start + (timeout_ms / 2u);
+
+    for (;;) {
+        uint8_t r1 = SPI2_SendRecv(0xFF);
+        if (r1 == expected) {
+            return 0u;
+        }
+        /* 检查超时：OSTimeGet 单调递增（无符号回绕容错） */
+        {
+            uint32_t now = OSTimeGet(&err);
+            if ((now - start) >= (deadline_tick - start)) {
+                BSP_USART2_Printf("[SD] WaitResp 0x%02X timeout (%lums)\r\n",
+                                  expected, (unsigned long)timeout_ms);
+                return 1u;
+            }
+        }
+    }
 }
 
-/* SD 卡 SPI 模式初始化: CMD0 -> CMD8 -> ACMD41 -> 就绪
-   （流程完全对齐测试工程） */
+/*
+ * SD 卡 SPI 模式初始化。
+ *
+ * 流程: CMD0 (100ms 超时) → CMD8 → ACMD41 (每 10ms 重试, 最长 1s)。
+ * 严格遵循 SD Physical Layer Simplified Spec V8.0 §7.2.2。
+ */
 uint8_t SD_SPI_Init(void)
 {
-    BSP_SD_CS_High();
-    for (int i = 0; i < 10; i++) SPI2_SendRecv(0xFF);
+    OS_ERR   err;
+    uint32_t start, deadline;
 
-    /* CMD0: GO_IDLE_STATE */
+    BSP_SD_CS_High();
+    for (int i = 0; i < 10; i++) SPI2_SendRecv(0xFF);     /* ≥74 clocks */
+
+    /* ---- CMD0: GO_IDLE_STATE ---- */
     BSP_SD_CS_Low();
-    /* 发命令帧: cmd | 0x40, arg=0x00000000, CRC=0x95 */
     SPI2_SendRecv(0x40);
     SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
     SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
-    SPI2_SendRecv(0x95);
-    if (SD_WaitResponse(0x01u)) {
+    SPI2_SendRecv(0x95);                                   /* CRC7=0x95 for CMD0 */
+    if (SD_WaitResponse(0x01u, 100u)) {
         BSP_SD_CS_High();
-        BSP_USART2_Printf("[SD] CMD0 fail\r\n");
         return 1;
     }
     BSP_SD_CS_High();
-    SPI2_SendRecv(0xFF);                       /* 8 个虚拟时钟 */
+    SPI2_SendRecv(0xFF);
 
-    /* CMD8: SEND_IF_COND (arg=0x000001AA, CRC=0x87) */
+    /* ---- CMD8: SEND_IF_COND ---- */
     BSP_SD_CS_Low();
     SPI2_SendRecv(0x48);
     SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
-    SPI2_SendRecv(0x01); SPI2_SendRecv(0xAA);
-    SPI2_SendRecv(0x87);
+    SPI2_SendRecv(0x01); SPI2_SendRecv(0xAA);              /* arg=0x1AA */
+    SPI2_SendRecv(0x87);                                   /* CRC7=0x87 */
     {
-        uint8_t r7 = SPI2_SendRecv(0xFF);               /* R1 */
-        BSP_USART2_Printf("[SD] CMD8 R1=0x%02X\r\n", r7);
-        if (r7 == 0x01u) {
-            /* SD v2.0: 读 4 字节 R7 体（电压窗口 + check pattern 回显） */
+        uint8_t r7_r1 = SPI2_SendRecv(0xFF);
+        BSP_USART2_Printf("[SD] CMD8 R1=0x%02X\r\n", r7_r1);
+        if (r7_r1 == 0x01u) {
             (void)SPI2_SendRecv(0xFF); (void)SPI2_SendRecv(0xFF);
             (void)SPI2_SendRecv(0xFF); (void)SPI2_SendRecv(0xFF);
         }
@@ -159,29 +184,38 @@ uint8_t SD_SPI_Init(void)
     BSP_SD_CS_High();
     SPI2_SendRecv(0xFF);
 
-    /* ACMD41: SD_SEND_OP_COND (CMD55 + ACMD41, HCS=1) */
+    /* ---- ACMD41: SD_SEND_OP_COND (HCS=1, 最长 1s, 每 10ms 重试) ---- */
+    start    = OSTimeGet(&err);
+    deadline = start + 500u;                               /* 500 ticks = 1s */
     {
-        uint16_t acmd_retry = 1000;
-        uint8_t  r1 = 0xFF;
+        uint8_t r1 = 0xFF;
         do {
             BSP_SD_CS_Low();
-            /* CMD55: APP_CMD */
+            /* CMD55 */
             SPI2_SendRecv(0x77);
             SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
             SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
             SPI2_SendRecv(0xFF);
-            (void)SPI2_SendRecv(0xFF);                  /* 丢弃 CMD55 的 R1 */
-            /* ACMD41: arg=0x40000000 (HCS=1) */
+            (void)SPI2_SendRecv(0xFF);
+            /* ACMD41 (HCS=1, bit30) */
             SPI2_SendRecv(0x69);
             SPI2_SendRecv(0x40); SPI2_SendRecv(0x00);
             SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
             SPI2_SendRecv(0xFF);
-            r1 = SPI2_SendRecv(0xFF);                   /* 读 R1 */
+            r1 = SPI2_SendRecv(0xFF);
             BSP_SD_CS_High();
             SPI2_SendRecv(0xFF);
-        } while (r1 != 0x00u && --acmd_retry);
+
+            if (r1 == 0x00u) break;                         /* 就绪 */
+
+            /* SD 规范允许卡在 ACMD41 后耗时数百 ms；每次重试间隔 10ms
+               避免紧轮询浪费总线且给卡充足的初始化时间 */
+            OSTimeDlyHMSM(0, 0, 0, 10u,
+                          OS_OPT_TIME_HMSM_STRICT, &err);
+        } while ((OSTimeGet(&err) - start) < (deadline - start));
+
         if (r1 != 0x00u) {
-            BSP_USART2_Printf("[SD] ACMD41 fail, R1=0x%02X\r\n", r1);
+            BSP_USART2_Printf("[SD] ACMD41 timeout (1s)\r\n");
             return 1;
         }
     }
@@ -190,25 +224,26 @@ uint8_t SD_SPI_Init(void)
     return 0;
 }
 
+/*
+ * CMD17 读取单个 512 字节块。R1 和 Data Token 均使用基于时间的超时。
+ */
 uint8_t SD_SPI_ReadBlock(uint32_t addr, uint8_t *buf)
 {
     BSP_SD_CS_Low();
-    /* CMD17: READ_SINGLE_BLOCK */
+    /* CMD17 */
     SPI2_SendRecv(0x51);
     SPI2_SendRecv((addr >> 24) & 0xFF);
     SPI2_SendRecv((addr >> 16) & 0xFF);
     SPI2_SendRecv((addr >> 8) & 0xFF);
     SPI2_SendRecv(addr & 0xFF);
     SPI2_SendRecv(0xFF);
-    /* 等待 R1=0x00 */
-    if (SD_WaitResponse(0x00u)) { BSP_SD_CS_High(); return 1; }
 
-    /* 等待 Data Token 0xFE */
-    if (SD_WaitResponse(0xFEu)) { BSP_SD_CS_High(); return 2; }
+    if (SD_WaitResponse(0x00u, 100u)) { BSP_SD_CS_High(); return 1; }      /* R1 */
+    if (SD_WaitResponse(0xFEu, 100u)) { BSP_SD_CS_High(); return 2; }      /* Data Token */
 
     for (uint16_t i = 0; i < SD_BLOCK_SIZE; i++)
         buf[i] = SPI2_SendRecv(0xFF);
-    SPI2_SendRecv(0xFF); SPI2_SendRecv(0xFF);  /* CRC */
+    SPI2_SendRecv(0xFF); SPI2_SendRecv(0xFF);  /* CRC16 */
 
     BSP_SD_CS_High();
     SPI2_SendRecv(0xFF);
