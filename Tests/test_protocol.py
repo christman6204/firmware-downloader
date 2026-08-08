@@ -106,7 +106,7 @@ def proto_build_frame(cmd, cmd_len=None):
     cid = _comm_id
     _comm_id = (_comm_id + 1) & 0xFFFF  # 自增、自然回绕
 
-    length = 11 + cmd_len
+    length = 12 + cmd_len   # 报文总长 - 8
     total = FRAME_FIXED_LEN + cmd_len + FRAME_TAIL_LEN
     out = bytearray(total)
 
@@ -156,9 +156,9 @@ def proto_parse_frame(raw):
 
     # Length (BE)
     length = (raw[6] << 8) | raw[7]
-    if length < 11:
+    if length < 12:
         return (PROTO_ERR_LENGTH, b'', 0)
-    cl = length - 11
+    cl = length - 12
     if cl > FRAME_MAX_CMD_LEN:
         return (PROTO_ERR_LENGTH, b'', 0)
 
@@ -324,9 +324,9 @@ def main():
     assert devid == APP_DEV_ID == 999999, "T5: devid %d" % devid
     assert frame[14] == APP_HOST_ID, "T5: hostid %d" % frame[14]
     assert frame[15] == APP_MSG_TYPE, "T5: msgtype %d" % frame[15]
-    # Length 字段 (BE) = 11 + cmd_len = 11 + 2 = 13
+    # Length 字段 (BE) = 报文总长 - 8 = 12 + cmd_len = 12 + 2 = 14
     length = (frame[6] << 8) | frame[7]
-    assert length == 13, "T5: length %d != 13" % length
+    assert length == 14, "T5: length %d != 14" % length
     # Tail
     assert frame[-4:] == FRAME_TAIL, "T5: tail"
     print("Test 5 PASSED: 帧头/尾字段 (DevID=%d, NetType=%d, HostID=%d, "

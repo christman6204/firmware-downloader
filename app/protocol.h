@@ -6,7 +6,7 @@
  *   偏移 0  : Header(4)   = FE EF ED FC
  *   偏移 4  : Checksum(1) = ~(sum of bytes[5..15+N]) & 0xFF
  *   偏移 5  : NetType(1)  = APP_NET_TYPE (3)
- *   偏移 6  : Length(2,BE) = 11 + cmd_len  （正文长度，不含 header+checksum+tail）
+ *   偏移 6  : Length(2,BE) = 12 + cmd_len  （报文总长 - 8, 即帧头4+帧尾4）
  *   偏移 8  : CommID(2,BE)= 自增、回绕
  *   偏移 10 : DevID(4,BE) = APP_DEV_ID (999999 = 0x000F423F)
  *   偏移 14 : HostID(1)   = APP_HOST_ID (99)

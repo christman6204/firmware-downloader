@@ -11,7 +11,7 @@
  *  +-------------+------+-------+--------+--------+--------+-------+--------+---------+------------+
  *
  *  CS = ~(sum of bytes[5..15+N]) & 0xFF       (对 11+N 字节求和后取反)
- *  Len = 11 + N                                (正文长度，不含 header+checksum+tail)
+ *  Len = 12 + N                                (报文总长 - 8, 即帧头4+帧尾4)
  *  N   = cmd_len                               (命令内容长度)
  *
  * 固定字段：
@@ -29,7 +29,7 @@
  *   Header       N/A    uint8[4]   0-3       固定魔数，无字节序概念
  *   Checksum     N/A    uint8      4         单字节，无字节序概念
  *   NetType      N/A    uint8      5         单字节
- *   Length       BE     uint16     6-7       正文长度 = 11+cmd_len
+ *   Length       BE     uint16     6-7       长度 = 12+cmd_len (报文总长-8)
  *   CommID       BE     uint16     8-9       自增计数器
  *   DevID        BE     uint32     10-13     999999 = 0x000F423F
  *   HostID       N/A    uint8      14        固定值 99
@@ -112,7 +112,7 @@ uint16_t Proto_BuildFrame(const uint8_t *cmd, uint16_t cmd_len,
     }
 
     total  = (uint16_t)(FRAME_FIXED_LEN + cmd_len + FRAME_TAIL_LEN);
-    length = (uint16_t)(11u + cmd_len);   /* 正文长度 = 偏移5..15+N 字节数 */
+    length = (uint16_t)(12u + cmd_len);   /* 长度 = 报文总长 - 8 (帧头4+帧尾4) */
     cid    = g_comm_id;
     g_comm_id = (uint16_t)(g_comm_id + 1u);  /* 自增、自然回绕 */
 
@@ -195,12 +195,12 @@ uint8_t Proto_ParseFrame(const uint8_t *raw, uint16_t raw_len,
         return PROTO_ERR_HEADER;
     }
 
-    /* Length (BE) = 11 + cmd_len */
+    /* Length (BE) = 报文总长 - 8 = 12 + cmd_len */
     length = (uint16_t)(((uint16_t)raw[6] << 8) | raw[7]);
-    if (length < 11u) {
+    if (length < 12u) {
         return PROTO_ERR_LENGTH;
     }
-    cl = (uint16_t)(length - 11u);
+    cl = (uint16_t)(length - 12u);
     if (cl > FRAME_MAX_CMD_LEN) {
         return PROTO_ERR_LENGTH;
     }
