@@ -119,117 +119,109 @@ static uint8_t SPI2_SendRecv(uint8_t byte)
 }
 
 /*
- * 轮询 SD 响应字节，直到匹配或超时。
+ * SPI 命令帧收发（一次 CS-Low → 发 6 字节 → 读 R1 → CS-High）。
+ * 调用者负责：CS 在进入前已 High，函数内部完成 Low→收发→High 完整周期。
  *
- * SD Physical Layer Spec §7.2: SPI 模式下每字节传输之间插入的空闲周期
- * 不受限制，主机须持续读直到收到有效 R1（bit7=0，即非 0xFF）。
- *
- * timeout_ms : 超时（毫秒）。命令响应 100ms，ACMD41 就绪 1000ms。
- * 返回 0 = 收到期望值, 1 = 超时
+ * UCOS-III 诊断结论：任务抢断会破坏 SPI 时序，导致 R1 误读 0xFF。
+ * 本函数全程关中断保护，超时用固定次数（0xFFF ≈ 200ms @140kHz）。
  */
-static uint8_t SD_WaitResponse(uint8_t expected, uint32_t timeout_ms)
+static uint8_t SD_SendCommand(uint8_t cmd, uint32_t arg, uint8_t crc,
+                              uint8_t expected_r1)
 {
-    OS_ERR   err;
-    uint32_t start = OSTimeGet(&err);           /* 当前 OS tick (500Hz, 2ms/tick) */
-    uint32_t deadline_tick = start + (timeout_ms / 2u);
+    uint32_t cnt = 0xFFFu;
+    uint8_t  r1  = 0xFFu;
+    CPU_SR_ALLOC();
 
-    for (;;) {
-        uint8_t r1 = SPI2_SendRecv(0xFF);
-        if (r1 == expected) {
-            return 0u;
-        }
-        /* 检查超时：OSTimeGet 单调递增（无符号回绕容错） */
-        {
-            uint32_t now = OSTimeGet(&err);
-            if ((now - start) >= (deadline_tick - start)) {
-                BSP_USART2_Printf("[SD] WaitResp 0x%02X timeout (%lums)\r\n",
-                                  expected, (unsigned long)timeout_ms);
-                return 1u;
-            }
-        }
-    }
+    CPU_CRITICAL_ENTER();
+    BSP_SD_CS_Low();
+    SPI2_SendRecv(cmd | 0x40u);                             /* cmd[5:0] | start+transmission bit */
+    SPI2_SendRecv((uint8_t)(arg >> 24));
+    SPI2_SendRecv((uint8_t)(arg >> 16));
+    SPI2_SendRecv((uint8_t)(arg >> 8));
+    SPI2_SendRecv((uint8_t)(arg));
+    SPI2_SendRecv(crc);
+
+    do { r1 = SPI2_SendRecv(0xFF); } while (r1 != expected_r1 && --cnt);
+    BSP_SD_CS_High();
+    SPI2_SendRecv(0xFF);                                    /* 8 虚拟时钟 */
+    CPU_CRITICAL_EXIT();
+
+    return (r1 == expected_r1) ? 0u : 1u;
 }
 
 /*
  * SD 卡 SPI 模式初始化。
  *
- * 流程: CMD0 (100ms 超时) → CMD8 → ACMD41 (每 10ms 重试, 最长 1s)。
- * 严格遵循 SD Physical Layer Simplified Spec V8.0 §7.2.2。
+ * 每个 SPI 命令由 SD_SendCommand 原子执行（关中断保护）。
+ * ACMD41 每 10ms 重试一次，最长 1s。
  */
 uint8_t SD_SPI_Init(void)
 {
     OS_ERR   err;
     uint32_t start, deadline;
-    CPU_SR_ALLOC();                                         /* 关中断诊断 */
 
     BSP_SD_CS_High();
     for (int i = 0; i < 10; i++) SPI2_SendRecv(0xFF);     /* ≥74 clocks */
 
-    /* ---- CMD0: GO_IDLE_STATE (关中断 排除 RTOS 抢断, 用次数超时) ---- */
-    CPU_CRITICAL_ENTER();
-    BSP_SD_CS_Low();
-    SPI2_SendRecv(0x40);
-    SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
-    SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
-    SPI2_SendRecv(0x95);
-    {
-        uint32_t cnt = 0xFFFu;                             /* 次数超时: 关中断时 OSTimeGet 不递增 */
-        uint8_t  r1  = 0xFFu;
-        do { r1 = SPI2_SendRecv(0xFF); } while (r1 != 0x01u && --cnt);
-        if (r1 != 0x01u) {
-            CPU_CRITICAL_EXIT();
-            BSP_SD_CS_High();
-            BSP_USART2_Printf("[SD] CMD0 fail (ints off)\r\n");
-            return 1;
-        }
+    /* ---- CMD0: GO_IDLE_STATE ---- */
+    if (SD_SendCommand(0x00u, 0x00000000u, 0x95u, 0x01u)) {
+        BSP_USART2_Printf("[SD] CMD0 fail\r\n");
+        return 1;
     }
-    CPU_CRITICAL_EXIT();
-    BSP_SD_CS_High();
-    SPI2_SendRecv(0xFF);
 
-    /* ---- CMD8: SEND_IF_COND ---- */
-    BSP_SD_CS_Low();
-    SPI2_SendRecv(0x48);
-    SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
-    SPI2_SendRecv(0x01); SPI2_SendRecv(0xAA);              /* arg=0x1AA */
-    SPI2_SendRecv(0x87);                                   /* CRC7=0x87 */
+    /* ---- CMD8: SEND_IF_COND (arg=0x1AA, CRC=0x87) ---- */
     {
-        uint8_t r7_r1 = SPI2_SendRecv(0xFF);
-        BSP_USART2_Printf("[SD] CMD8 R1=0x%02X\r\n", r7_r1);
+        uint32_t cnt = 0xFFFu;
+        uint8_t  r7_r1;
+        CPU_SR_ALLOC();
+
+        CPU_CRITICAL_ENTER();
+        BSP_SD_CS_Low();
+        SPI2_SendRecv(0x48);
+        SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
+        SPI2_SendRecv(0x01); SPI2_SendRecv(0xAA);
+        SPI2_SendRecv(0x87);
+        do { r7_r1 = SPI2_SendRecv(0xFF); } while (r7_r1 == 0xFFu && --cnt);
         if (r7_r1 == 0x01u) {
             (void)SPI2_SendRecv(0xFF); (void)SPI2_SendRecv(0xFF);
             (void)SPI2_SendRecv(0xFF); (void)SPI2_SendRecv(0xFF);
         }
+        BSP_SD_CS_High();
+        SPI2_SendRecv(0xFF);
+        CPU_CRITICAL_EXIT();
+        BSP_USART2_Printf("[SD] CMD8 R1=0x%02X\r\n", r7_r1);
     }
-    BSP_SD_CS_High();
-    SPI2_SendRecv(0xFF);
 
     /* ---- ACMD41: SD_SEND_OP_COND (HCS=1, 最长 1s, 每 10ms 重试) ---- */
     start    = OSTimeGet(&err);
     deadline = start + 500u;                               /* 500 ticks = 1s */
     {
-        uint8_t r1 = 0xFF;
+        uint8_t r1 = 0xFFu;
         do {
-            BSP_SD_CS_Low();
-            /* CMD55 */
-            SPI2_SendRecv(0x77);
-            SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
-            SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
-            SPI2_SendRecv(0xFF);
-            (void)SPI2_SendRecv(0xFF);
-            /* ACMD41 (HCS=1, bit30) */
-            SPI2_SendRecv(0x69);
-            SPI2_SendRecv(0x40); SPI2_SendRecv(0x00);
-            SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
-            SPI2_SendRecv(0xFF);
-            r1 = SPI2_SendRecv(0xFF);
-            BSP_SD_CS_High();
-            SPI2_SendRecv(0xFF);
-
+            /* 每次 CMD55+ACMD41 原子执行（关中断），完成后恢复中断等 10ms */
+            {
+                uint32_t cnt = 0xFFFu;
+                CPU_SR_ALLOC();
+                CPU_CRITICAL_ENTER();
+                BSP_SD_CS_Low();
+                /* CMD55 */
+                SPI2_SendRecv(0x77);
+                SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
+                SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
+                SPI2_SendRecv(0xFF);
+                (void)SPI2_SendRecv(0xFF);                  /* 丢弃 CMD55 R1 */
+                /* ACMD41 */
+                SPI2_SendRecv(0x69);
+                SPI2_SendRecv(0x40); SPI2_SendRecv(0x00);
+                SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
+                SPI2_SendRecv(0xFF);
+                do { r1 = SPI2_SendRecv(0xFF); } while (r1 == 0xFFu && --cnt);
+                BSP_SD_CS_High();
+                SPI2_SendRecv(0xFF);
+                CPU_CRITICAL_EXIT();
+            }
             if (r1 == 0x00u) break;                         /* 就绪 */
 
-            /* SD 规范允许卡在 ACMD41 后耗时数百 ms；每次重试间隔 10ms
-               避免紧轮询浪费总线且给卡充足的初始化时间 */
             OSTimeDlyHMSM(0, 0, 0, 10u,
                           OS_OPT_TIME_HMSM_STRICT, &err);
         } while ((OSTimeGet(&err) - start) < (deadline - start));
@@ -246,21 +238,33 @@ uint8_t SD_SPI_Init(void)
 }
 
 /*
- * CMD17 读取单个 512 字节块。R1 和 Data Token 均使用基于时间的超时。
+ * CMD17 读取单个 512 字节块。关中断保护。
  */
 uint8_t SD_SPI_ReadBlock(uint32_t addr, uint8_t *buf)
 {
+    uint32_t cnt;
+    uint8_t  b;
+    CPU_SR_ALLOC();
+
+    CPU_CRITICAL_ENTER();
     BSP_SD_CS_Low();
     /* CMD17 */
     SPI2_SendRecv(0x51);
-    SPI2_SendRecv((addr >> 24) & 0xFF);
-    SPI2_SendRecv((addr >> 16) & 0xFF);
-    SPI2_SendRecv((addr >> 8) & 0xFF);
-    SPI2_SendRecv(addr & 0xFF);
+    SPI2_SendRecv((uint8_t)(addr >> 24));
+    SPI2_SendRecv((uint8_t)(addr >> 16));
+    SPI2_SendRecv((uint8_t)(addr >> 8));
+    SPI2_SendRecv((uint8_t)(addr));
     SPI2_SendRecv(0xFF);
 
-    if (SD_WaitResponse(0x00u, 100u)) { BSP_SD_CS_High(); return 1; }      /* R1 */
-    if (SD_WaitResponse(0xFEu, 100u)) { BSP_SD_CS_High(); return 2; }      /* Data Token */
+    /* R1 = 0x00 */
+    cnt = 0xFFFu;
+    do { b = SPI2_SendRecv(0xFF); } while (b == 0xFFu && --cnt);
+    if (b != 0x00u) { BSP_SD_CS_High(); CPU_CRITICAL_EXIT(); return 1; }
+
+    /* Data Token = 0xFE */
+    cnt = 0xFFFu;
+    do { b = SPI2_SendRecv(0xFF); } while (b == 0xFFu && --cnt);
+    if (b != 0xFEu) { BSP_SD_CS_High(); CPU_CRITICAL_EXIT(); return 2; }
 
     for (uint16_t i = 0; i < SD_BLOCK_SIZE; i++)
         buf[i] = SPI2_SendRecv(0xFF);
@@ -268,5 +272,6 @@ uint8_t SD_SPI_ReadBlock(uint32_t addr, uint8_t *buf)
 
     BSP_SD_CS_High();
     SPI2_SendRecv(0xFF);
+    CPU_CRITICAL_EXIT();
     return 0;
 }
