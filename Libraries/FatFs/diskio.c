@@ -89,6 +89,21 @@ DRESULT disk_read (BYTE pdrv, BYTE* buff, LBA_t sector, UINT count)
         }
     }
 
+    /* 调试：扇区 0 首 16 字节 + 偏移 0x1BE 分区表首字节 */
+    if (sector == 0u && count > 0u) {
+        BSP_USART2_Printf("[SD] sector0[0..15]:"
+                          " %02X %02X %02X %02X %02X %02X %02X %02X"
+                          " %02X %02X %02X %02X %02X %02X %02X %02X\r\n",
+                          buff[0], buff[1], buff[2], buff[3],
+                          buff[4], buff[5], buff[6], buff[7],
+                          buff[8], buff[9], buff[10], buff[11],
+                          buff[12], buff[13], buff[14], buff[15]);
+        BSP_USART2_Printf("[SD] sector0[0x1BE]: %02X %02X %02X %02X"
+                          "  (partition type=0x%02X)\r\n",
+                          buff[0x1BE], buff[0x1BF], buff[0x1C0], buff[0x1C1],
+                          buff[0x1C2]);
+    }
+
     return RES_OK;
 }
 
