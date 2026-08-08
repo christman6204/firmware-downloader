@@ -29,6 +29,9 @@
 #define  APP_SEGMENT_SIZE             256u
 #define  APP_CMD_TIMEOUT_MS           1000u
 #define  APP_CMD_TIMEOUT_TICKS        (APP_CMD_TIMEOUT_MS / 2u)     /* 500 */
+/* 完成固件传输命令等待回复超时 8s（其他命令 1s） */
+#define  APP_CMD_COMPLETE_TIMEOUT_MS  8000u
+#define  APP_CMD_COMPLETE_TIMEOUT_TICKS  (APP_CMD_COMPLETE_TIMEOUT_MS / 2u) /* 4000 */
 #define  APP_CMD_MAX_RETRY            6u
 #define  APP_GLOBAL_TIMEOUT_MIN       6u
 #define  APP_ERROR_MAX_RETRY          6u

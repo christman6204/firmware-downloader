@@ -127,7 +127,8 @@ static uint8_t g_seg_buf[APP_SEGMENT_SIZE];
 /*---------------------------------------------------------------------------*/
 static uint8_t DL_SendAndWait(const uint8_t *frame, uint16_t frame_len,
                               uint8_t *reply_type, uint8_t *status,
-                              uint8_t *content, uint16_t *content_len)
+                              uint8_t *content, uint16_t *content_len,
+                              OS_TICK timeout_ticks)
 {
     OS_ERR       err;
     uint16_t     rclen = 0u;
@@ -157,14 +158,15 @@ static uint8_t DL_SendAndWait(const uint8_t *frame, uint16_t frame_len,
     BSP_USART1_RecvStart();                 /* 复位 RX 缓冲，使能 RXNE       */
     BSP_USART1_Send(frame, frame_len);      /* 阻塞发送整帧                  */
 
-    /* 等待 RX 完成信号量，超时 = APP_CMD_TIMEOUT_TICKS (500 = 1s) */
+    /* 等待 RX 完成信号量，超时 = timeout_ticks (默认 1s, 完成命令 8s) */
     OSSemPend(&g_usart1_rx_sem,
-              APP_CMD_TIMEOUT_TICKS,
+              timeout_ticks,
               OS_OPT_PEND_BLOCKING,
               (CPU_TS *)0,
               &err);
     if (err == OS_ERR_TIMEOUT) {
-        BSP_USART2_Printf("[DWN] RX TIMEOUT (1s no reply)\r\n");
+        BSP_USART2_Printf("[DWN] RX TIMEOUT (%lu ms no reply)\r\n",
+                          (unsigned long)(timeout_ticks * 2u));
         return 0xFFu;                        /* 命令超时                      */
     }
     /* err == OS_ERR_NONE 或其它（如已被删除） -- 尽力解析已收到的字节 */
@@ -217,7 +219,8 @@ static void DL_SendTerminate(uint16_t fw_ver, uint32_t fw_size)
 
     Proto_BuildTerminateCmd(fw_ver, fw_size, g_tx_buf, &len);
     DL_SendAndWait(g_tx_buf, len, &rtype, &dummy_status,
-                   g_reply_content, &dummy_clen);
+                   g_reply_content, &dummy_clen,
+                   APP_CMD_TIMEOUT_TICKS);
     /* 应答结果丢弃：本端已决定终止 */
 }
 
@@ -440,6 +443,7 @@ void AppTask_Download(void *p_arg)
                                 g_tx_buf, &len);
             status = DL_SendAndWait(g_tx_buf, len, &rtype, &status,
                                     g_reply_content, &clen);
+                                    APP_CMD_TIMEOUT_TICKS);
 
             if (status == STATUS_START_OK) {
                 BSP_USART2_Printf("[DWN] Start: OK (%u)\r\n",
@@ -547,6 +551,7 @@ void AppTask_Download(void *p_arg)
 
             status = DL_SendAndWait(g_tx_buf, len, &rtype, &status,
                                     g_reply_content, &clen);
+                                    APP_CMD_TIMEOUT_TICKS);
 
             if (status == STATUS_DATA_OK) {
                 offset     += seg_size;    /* sd_fptr == offset 重新对齐 */
@@ -641,6 +646,7 @@ void AppTask_Download(void *p_arg)
                                    g_tx_buf, &len);
             status = DL_SendAndWait(g_tx_buf, len, &rtype, &status,
                                     g_reply_content, &clen);
+                                    APP_CMD_COMPLETE_TIMEOUT_TICKS);
 
             if (status == STATUS_COMPLETE_OK) {
                 BSP_USART2_Printf("[DWN] Complete: OK (%u)\r\n",
@@ -680,6 +686,7 @@ void AppTask_Download(void *p_arg)
             Proto_BuildUpdateCmd(update_type, g_tx_buf, &len);
             status = DL_SendAndWait(g_tx_buf, len, &rtype, &status,
                                     g_reply_content, &clen);
+                                    APP_CMD_TIMEOUT_TICKS);
 
             if (status == STATUS_UPDATE_OK) {
                 BSP_USART2_Printf("[DWN] Update: OK (%u) - SUCCESS!\r\n",
