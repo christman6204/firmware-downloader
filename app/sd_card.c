@@ -84,11 +84,13 @@ uint8_t SD_Init(void)
     fr = f_mount(&g_fs, "0:", 1u);
     if (fr != FR_OK) {
         g_ready = 0u;
-        /* 区分"无文件系统"和"硬件未就绪"对上层意义不大，统一报 MOUNT */
+        BSP_USART2_Printf("[SD] f_mount fail, FRESULT=%u\r\n", (unsigned int)fr);
         return SD_ERR_MOUNT;
     }
 
     g_ready = 1u;
+    BSP_USART2_Printf("[SD] Mount OK, FAT%d\r\n",
+                      (g_fs.fs_type == 2) ? 16 : 32);
     return SD_OK;
 }
 

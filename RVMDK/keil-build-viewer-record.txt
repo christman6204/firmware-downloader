@@ -3,7 +3,7 @@
        156          0          0          0          0          0   bsp.o
        360          0          0          0          0          0   bsp_gpio.o
          8          0          0          0          0          0   bsp_iwdg.o
-       700          0          0          0          0          0   bsp_spi_sd.o
+       720          0          0          0          0          0   bsp_spi_sd.o
        624          0          0          3        552          0   bsp_usart.o
          0          0          0          0          0          0   core_cm3.o
         52          0          0          0          0          0   cpu_a.o
@@ -52,7 +52,7 @@ Memory Map of the image
 
 	Load Region LR_VECTOR 
 
-		Execution Region ER_VECTOR (Exec base: 0x08000000, Size: 0x0000AC30, Max: 0x00020000, END)
+		Execution Region ER_VECTOR (Exec base: 0x08000000, Size: 0x0000AC44, Max: 0x00020000, END)
 
 		Execution Region RW_IRAM1 (Exec base: 0x20000000, Size: 0x000065F0, Max: 0x00010000, END)
 

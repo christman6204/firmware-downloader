@@ -52,6 +52,7 @@
  */
 #include "bsp_spi_sd.h"
 #include "bsp_gpio.h"
+#include "bsp_usart.h"   /* BSP_USART2_Printf for [SD] debug */
 
 void BSP_SPI2_Init(void)
 {
@@ -121,7 +122,10 @@ uint8_t SD_SPI_Init(void)
         BSP_SD_CS_High();
         SPI2_SendRecv(0xFF);                       /* 8 个虚拟时钟 */
     } while (r1 != 0x01 && --retry);
-    if (!retry) { return 1; }
+    if (!retry) {
+        BSP_USART2_Printf("[SD] CMD0 fail, R1=0x%02X\r\n", r1);
+        return 1;
+    }
 
     /* CMD8: SEND_IF_COND (电压 3.3V, check pattern 0xAA) */
     BSP_SD_CS_Low();
@@ -130,6 +134,7 @@ uint8_t SD_SPI_Init(void)
     SPI2_SendRecv(0x01); SPI2_SendRecv(0xAA);   /* arg = 0x000001AA */
     SPI2_SendRecv(0x87);                        /* CRC7 for CMD8 with 0x1AA arg */
     r1 = SPI2_SendRecv(0xFF);                   /* R1 */
+    BSP_USART2_Printf("[SD] CMD8 R1=0x%02X\r\n", r1);
     if (r1 == 0x01) {
         /* SD v2.0: 读 4 字节 R7 应答体（电压窗口 + check pattern 回显） */
         SPI2_SendRecv(0xFF); SPI2_SendRecv(0xFF);
@@ -151,10 +156,13 @@ uint8_t SD_SPI_Init(void)
         BSP_SD_CS_High();
         SPI2_SendRecv(0xFF);                    /* 8 个虚拟时钟 */
     } while (r1 != 0x00 && --retry);
+    if (r1 != 0x00) {
+        BSP_USART2_Printf("[SD] ACMD41 fail, R1=0x%02X\r\n", r1);
+        return 1;
+    }
 
-    if (r1 != 0x00) return 1;
-
-    /* 初始化成功, 提速至 18MHz 用于后续读写 */
+    /* ---- 初始化成功 ---- */
+    BSP_USART2_Printf("[SD] Init OK (CMD0->CMD8->ACMD41 passed)\r\n");
     SD_SPI_SetHighSpeed();
     return 0;
 }
