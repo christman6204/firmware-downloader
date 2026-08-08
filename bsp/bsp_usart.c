@@ -13,8 +13,8 @@ static uint8_t  g_rx_byte;
      1) 累积字节 > RX_FRAME_READY_LEN (128), 或
      2) 超过 RX_TIMEOUT_MS (300ms) 没有新数据
    满足任一条件即上报应用层 (OSSemPost)。*/
-#define RX_TIMEOUT_MS       200u     /* 超时阈值 ms */
-#define RX_TIMEOUT_TICKS    (RX_TIMEOUT_MS / 10u)   /* TIM3 10ms/tick -> 20 */
+#define RX_TIMEOUT_MS       150u     /* 超时阈值 ms */
+#define RX_TIMEOUT_TICKS    (RX_TIMEOUT_MS / 10u)   /* TIM3 10ms/tick -> 15 */
 #define RX_FRAME_READY_LEN  128u     /* 字节数阈值 */
 static volatile uint16_t g_rx_timeout = 0u;   /* 递减计数器, 0 表示已超时 */
 
