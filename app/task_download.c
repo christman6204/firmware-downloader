@@ -113,6 +113,8 @@ static uint8_t g_tx_buf[FRAME_MAX_TOTAL];
 static uint8_t g_reply_content[FRAME_MAX_CMD_LEN];
 static uint8_t g_seg_buf[APP_SEGMENT_SIZE];
 static uint32_t g_send_tick = 0u;   /* 发送时刻 (OS tick), 用于测回复耗时 */
+static uint32_t g_max_reply_latency_ms = 0u;  /* 本次下载中最大回复耗时 */
+static uint32_t g_max_byte_gap_ms = 0u;       /* 本次下载中最大字节间隔 */
 
 
 /*---------------------------------------------------------------------------*/
@@ -179,14 +181,22 @@ static uint8_t DL_SendAndWait(const uint8_t *frame, uint16_t frame_len,
     rx_len = BSP_USART1_GetRecvLen();
     rx_data = BSP_USART1_GetRecvBuf();
 
-    /* 记录回复到达时刻，计算实际耗时 + 相邻字节最大间隔 */
+    /* 记录回复到达时刻，计算实际耗时 + 相邻字节最大间隔，并更新全程最大值 */
     {
         OS_ERR t_err;
         uint32_t now = OSTimeGet(&t_err);
         uint32_t elapsed_ms = (now - g_send_tick) * 2u;   /* 500Hz tick = 2ms */
+        uint32_t gap_ms = BSP_USART1_GetRxMaxGapMs();
+
+        if (elapsed_ms > g_max_reply_latency_ms) {
+            g_max_reply_latency_ms = elapsed_ms;
+        }
+        if (gap_ms > g_max_byte_gap_ms) {
+            g_max_byte_gap_ms = gap_ms;
+        }
+
         BSP_USART2_Printf("[DWN] Reply latency: %lu ms, max byte gap: %lu ms\r\n",
-                          (unsigned long)elapsed_ms,
-                          (unsigned long)BSP_USART1_GetRxMaxGapMs());
+                          (unsigned long)elapsed_ms, (unsigned long)gap_ms);
     }
 
     /* ---- 调试: dump 接收帧 (前 128 字节, 单次打印, 栈占用 408B 安全) ---- */
@@ -718,6 +728,13 @@ void AppTask_Download(void *p_arg)
             if (src == DATA_SRC_SD_CARD) {
                 SD_FileClose();
             }
+            /* 下载结束: 输出全程最大耗时统计 */
+            BSP_USART2_Printf("[DWN] ===== Download stats =====\r\n");
+            BSP_USART2_Printf("[DWN] Max reply latency: %lu ms\r\n",
+                              (unsigned long)g_max_reply_latency_ms);
+            BSP_USART2_Printf("[DWN] Max byte gap: %lu ms\r\n",
+                              (unsigned long)g_max_byte_gap_ms);
+            BSP_USART2_Printf("[DWN] ===========================\r\n");
             BSP_USART2_Printf("[DWN] Transfer ended, lock released\r\n");
             state = DL_STATE_IDLE;
             break;
