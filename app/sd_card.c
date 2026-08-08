@@ -166,8 +166,8 @@ uint8_t SD_FindLatestFirmware(void)
             if (name[9] < '0' || name[9] > '9') { continue; }
             major = (uint16_t)((name[7]-'0')*100u + (name[8]-'0')*10u + (name[9]-'0'));
 
-            /* 分隔符 '_' */
-            if (name[10] != '_') { continue; }
+            /* 分隔符: '.' 或 '_' 均可 */
+            if (name[10] != '.' && name[10] != '_') { continue; }
 
             /* 解析 3 位子版本 */
             if (name[11] < '0' || name[11] > '9') { continue; }

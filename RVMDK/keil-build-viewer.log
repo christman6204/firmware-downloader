@@ -32,7 +32,7 @@
 
 [region info]
 [load region] LR_VECTOR
-	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000C328 [memory type] 2 [memory ID] 3
+	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000C360 [memory type] 2 [memory ID] 3
 
 	[execution region] RW_IRAM1, 0x20000000, 0x00010000, 0x00007810 [memory type] 1 [memory ID] 2
 		[ZI block] addr: 0x20000140, size: 0x000076D0 (30416)
@@ -173,7 +173,7 @@
 
 [record region info]
 [load region] LR_VECTOR
-	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000C328 [type] 2 [ID] 3
+	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000C360 [type] 2 [ID] 3
 	[execution region] RW_IRAM1, 0x20000000, 0x00010000, 0x00007810 [type] 1 [ID] 2
 -----------------------------------------------------------------------------------------------------------------------
                              FILE(s)                            |         RAM (byte)       |       FLASH (byte)       |
@@ -213,7 +213,7 @@
 ..\ucos-iii\Source\os_tmr.c():                                  |           0              |         812              |
 ..\ucos-iii\Source\os_var.c():                                  |        1596              |         200              |
 ..\app\protocol.c():                                            |           2              |        1132              |
-..\app\sd_card.c():                                             |        5744              |        2399              |
+..\app\sd_card.c():                                             |        5744              |        2455              |
 ..\Libraries\CMSIS\startup\startup_stm32f10x_hd.s():            |        1024              |         340              |
 ..\Libraries\FWlib\src\stm32f10x_gpio.c():                      |           0              |         448              |
 ..\stm32f10x_it.c():                                            |           0              |          38              |
@@ -234,9 +234,9 @@ LR_VECTOR
                 RW_IRAM1   [0x20000000]|¡ö¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ___________________________| (  30.0 KB /  64.0 KB )  46.9%  
  
         FLASH 1            [0x08000000 | 0x00080000 (524288)]
-                ER_VECTOR  [0x08000000]|¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö_______________________________| (  48.7 KB / 128.0 KB )  38.1%  
+                ER_VECTOR  [0x08000000]|¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö_______________________________| (  48.8 KB / 128.0 KB )  38.2%  
  
 [htm file path] D:\claude\downloader\downloader\RVMDK\D:\output\MDK\IL-800\DEBUG\IL800_Loader_debug.htm
 =============================================================================================================================
 
-run time: 0.089 s
+run time: 0.087 s
