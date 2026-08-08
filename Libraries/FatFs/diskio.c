@@ -93,17 +93,12 @@ DRESULT disk_read (BYTE pdrv, BYTE* buff, LBA_t sector, UINT count)
         }
     }
 
-    /* 调试：每个扇区读请求 + 扇区0分区表详情 */
-    BSP_USART2_Printf("[SD] disk_read sector=%lu count=%u\r\n",
-                      (unsigned long)sector, (unsigned)count);
-    if (sector == 0u && count > 0u) {
-        BSP_USART2_Printf("[SD] MBR sig=%02X%02X  part1 type=0x%02X  startLBA=%lu\r\n",
-                          buff[0x1FE], buff[0x1FF], buff[0x1C2],
-                          (unsigned long)buff[0x1C6]
-                          | ((unsigned long)buff[0x1C7] << 8)
-                          | ((unsigned long)buff[0x1C8] << 16)
-                          | ((unsigned long)buff[0x1C9] << 24));
-    }
+    /* 调试：每个扇区读请求 + 首4字节 + 510签名 */
+    BSP_USART2_Printf("[SD] disk_read sector=%lu count=%u"
+                      "  [0..3]=%02X%02X%02X%02X  sig=%02X%02X\r\n",
+                      (unsigned long)sector, (unsigned)count,
+                      buff[0], buff[1], buff[2], buff[3],
+                      buff[510], buff[511]);
 
     return RES_OK;
 }
