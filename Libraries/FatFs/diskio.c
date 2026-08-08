@@ -24,10 +24,16 @@
 #include "ff.h"         /* 间接引入 integer.h / ffconf.h / diskio.h */
 #include "diskio.h"
 #include "bsp_spi_sd.h" /* SD 卡块读驱动 */
+#include "bsp_usart.h"   /* BSP_USART2_Printf for sector0 debug */
 #include "bsp_gpio.h"   /* BSP_SD_CS_Low/High（SD_SPI_Init 内部已用） */
 
 /* 单卷状态：b7 = 已初始化标志 (位掩码用 STA_NOINIT 取反) */
 static DSTATUS g_sd_stat = STA_NOINIT;
+
+/* MBR 分区映射：逻辑卷 0 = 物理驱动器 0, 第一个分区 */
+PARTITION VolToPart[FF_VOLUMES] = {
+    {0, 1},  /* pdrv=0, 分区 1 */
+};
 
 /*---------------------------------------------------------------------------*/
 /* disk_initialize: 挂载时由 f_mount (实际是 f_open 路径) 触发                */

@@ -47,7 +47,7 @@
 #define FF_VOLUMES          1   /* 单卷：SD 卡 */
 #define FF_STR_VOLUME_ID    0
 #define FF_VOLUME_STRS      "RAM","NAND","CF","SD","SD2","USB","USB2","USB3"
-#define FF_MULTI_PARTITION  0
+#define FF_MULTI_PARTITION  1   /* 1 = 支持 MBR 分区表（物理驱动器 → 逻辑分区） */
 #define FF_MIN_SS           512
 #define FF_MAX_SS           512 /* 固定 512 字节扇区 */
 #define FF_LBA64            0
