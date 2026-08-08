@@ -137,9 +137,9 @@ static uint8_t DL_SendAndWait(const uint8_t *frame, uint16_t frame_len,
     const uint8_t *rx_data;
     uint8_t      ret;
 
-    /* ---- 调试: dump 发送帧 (前 48 字节, 单次打印, 避免大栈) ---- */
+    /* ---- 调试: dump 发送帧 (前 128 字节, 单次打印, 栈占用 408B 安全) ---- */
     {
-        #define TX_DUMP_LEN  48u
+        #define TX_DUMP_LEN  128u
         char hexbuf[TX_DUMP_LEN * 3 + 24];
         uint16_t n = (frame_len < TX_DUMP_LEN) ? frame_len : TX_DUMP_LEN;
         int pos = 0;
@@ -172,9 +172,9 @@ static uint8_t DL_SendAndWait(const uint8_t *frame, uint16_t frame_len,
     rx_len = BSP_USART1_GetRecvLen();
     rx_data = BSP_USART1_GetRecvBuf();
 
-    /* ---- 调试: dump 接收帧 (前 48 字节, 单次打印, 避免大栈) ---- */
+    /* ---- 调试: dump 接收帧 (前 128 字节, 单次打印, 栈占用 408B 安全) ---- */
     {
-        #define RX_DUMP_LEN  48u
+        #define RX_DUMP_LEN  128u
         char hexbuf[RX_DUMP_LEN * 3 + 24];
         uint16_t n = (rx_len < RX_DUMP_LEN) ? rx_len : RX_DUMP_LEN;
         int pos = 0;
