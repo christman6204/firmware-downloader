@@ -35,7 +35,7 @@
 void  BSP_Init (void)
 {
     BSP_GPIO_Init();
-    BSP_IWDG_Init();
+    //BSP_IWDG_Init();
     BSP_USART_Init();
     BSP_SPI2_Init();          /* SPI2: SD 卡 (PB13/14/15 + PD8 CS) */
 }

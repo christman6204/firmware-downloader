@@ -83,7 +83,7 @@ void AppTask_LED_WDG(void *p_arg)
                 switch (g_buzzer_cmd) {
                 case BUZZER_CMD_BOOT:
                 case BUZZER_CMD_SHORT:
-                    buzzer_on_ms  = 500;
+                    buzzer_on_ms  = 300;
                     buzzer_off_ms = 0;
                     buzzer_repeat = 1;
                     break;
@@ -94,8 +94,8 @@ void AppTask_LED_WDG(void *p_arg)
                     buzzer_repeat = 1;
                     break;
                 case BUZZER_CMD_ERROR:
-                    buzzer_on_ms  = 500;
-                    buzzer_off_ms = 500;
+                    buzzer_on_ms  = 300;
+                    buzzer_off_ms = 300;
                     buzzer_repeat = 4;
                     break;
                 default:
@@ -125,7 +125,8 @@ void AppTask_LED_WDG(void *p_arg)
                 /* OFF (gap) phase */
                 if (buzzer_off_ms <= 50) {
                     BSP_Buzzer_On();
-                    buzzer_off_ms = (buzzer_pattern == BUZZER_CMD_ERROR) ? 500 : 0;
+                    buzzer_on_ms  = 300;  /* 重新开始 ON 阶段 */
+                    buzzer_off_ms = (buzzer_pattern == BUZZER_CMD_ERROR) ? 300 : 0;
                 } else {
                     buzzer_off_ms -= 50;
                 }

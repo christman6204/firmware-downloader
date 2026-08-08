@@ -133,9 +133,13 @@ static  void  AppTaskStart (void *p_arg)
     /* ---- 2. 系统状态初始化（互斥量 + 默认 SD_CARD / NORMAL / 解锁） ---- */
     SysState_Init();
 
-    /* ---- 3. SD 卡初始化（失败仅警告，不阻塞启动） ---- */
-    if (SD_Init() != SD_OK) {
+    /* ---- 3. SD 卡初始化 + 上电提示 ---- */
+    if (SD_Init() == SD_OK) {
+        BSP_USART2_Printf("SD card ready.\r\n");
+        Buzzer_Request(BUZZER_CMD_BOOT);      /* SD 有效：一声短鸣 (300ms) */
+    } else {
         BSP_USART2_Printf("Warning: SD card not detected.\r\n");
+        Buzzer_Request(BUZZER_CMD_ERROR);     /* SD 无效：四声短鸣 (300ms) */
     }
 
     /* ---- 4. 创建 IPC 对象 ---- */
@@ -188,9 +192,6 @@ static  void  AppTaskStart (void *p_arg)
                  (void       *) 0,
                  (OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
                  (OS_ERR     *)&err);
-
-    /* ---- 6. 上电提示音 ---- */
-    Buzzer_Request(BUZZER_CMD_BOOT);
 
     BSP_USART2_Printf("FW Downloader V2.0 Ready.\r\n");
 

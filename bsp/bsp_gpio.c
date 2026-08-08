@@ -72,7 +72,7 @@ uint8_t BSP_Key_Read(uint8_t key_id)
     return 1u;
 }
 
-void BSP_Buzzer_On(void)  { GPIO_SetBits(BUZZER_PORT, BUZZER_PIN); }
-void BSP_Buzzer_Off(void) { GPIO_ResetBits(BUZZER_PORT, BUZZER_PIN); }
+void BSP_Buzzer_On(void)  { GPIO_ResetBits(BUZZER_PORT, BUZZER_PIN); }  /* active-low */
+void BSP_Buzzer_Off(void) { GPIO_SetBits(BUZZER_PORT, BUZZER_PIN); }    /* active-low */
 void BSP_SD_CS_Low(void)  { GPIO_ResetBits(SD_CS_PORT, SD_CS_PIN); }
 void BSP_SD_CS_High(void) { GPIO_SetBits(SD_CS_PORT, SD_CS_PIN); }
