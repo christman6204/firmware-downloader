@@ -107,16 +107,6 @@ void BSP_USART_Init(void)
     /* 创建接收信号量 */
     OSSemCreate(&g_usart1_rx_sem, "USART1 RX", 0, &err);
 
-    /* USART1 上电自测：发送测试字符串，验证 TX 硬件正常 */
-    {
-        const char *test = "USART1_TX_OK\r\n";
-        while (*test) {
-            while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
-            USART_SendData(USART1, (uint16_t)*test++);
-        }
-        while (USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET);
-    }
-
     /* 启动接收超时计时器 (TIM3, 10ms 周期) */
     BSP_TIM3_Init();
     g_rx_timeout = 0u;
@@ -133,8 +123,11 @@ void BSP_USART1_Send(const uint8_t *buf, uint16_t len)
 
 void BSP_USART1_RecvStart(void)
 {
+    OS_ERR err;
     g_rx_len = 0;
     g_rx_timeout = 0u;
+    /* 清除残留信号量计数，确保 OSSemPend 真正等到新数据或超时 */
+    OSSemSet(&g_usart1_rx_sem, 0u, &err);
     USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
 }
 
