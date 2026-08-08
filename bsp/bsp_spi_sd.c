@@ -160,20 +160,30 @@ uint8_t SD_SPI_Init(void)
 {
     OS_ERR   err;
     uint32_t start, deadline;
+    CPU_SR_ALLOC();                                         /* 关中断诊断 */
 
     BSP_SD_CS_High();
     for (int i = 0; i < 10; i++) SPI2_SendRecv(0xFF);     /* ≥74 clocks */
 
-    /* ---- CMD0: GO_IDLE_STATE ---- */
+    /* ---- CMD0: GO_IDLE_STATE (关中断 排除 RTOS 抢断, 用次数超时) ---- */
+    CPU_CRITICAL_ENTER();
     BSP_SD_CS_Low();
     SPI2_SendRecv(0x40);
     SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
     SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
-    SPI2_SendRecv(0x95);                                   /* CRC7=0x95 for CMD0 */
-    if (SD_WaitResponse(0x01u, 100u)) {
-        BSP_SD_CS_High();
-        return 1;
+    SPI2_SendRecv(0x95);
+    {
+        uint32_t cnt = 0xFFFu;                             /* 次数超时: 关中断时 OSTimeGet 不递增 */
+        uint8_t  r1  = 0xFFu;
+        do { r1 = SPI2_SendRecv(0xFF); } while (r1 != 0x01u && --cnt);
+        if (r1 != 0x01u) {
+            CPU_CRITICAL_EXIT();
+            BSP_SD_CS_High();
+            BSP_USART2_Printf("[SD] CMD0 fail (ints off)\r\n");
+            return 1;
+        }
     }
+    CPU_CRITICAL_EXIT();
     BSP_SD_CS_High();
     SPI2_SendRecv(0xFF);
 
