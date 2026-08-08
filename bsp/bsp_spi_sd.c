@@ -44,7 +44,7 @@
  * ===== SPI 配置要点 =====
  *
  *   - SPI2: SCK=PB13, MISO=PB14, MOSI=PB15
- *   - 模式: CPOL=1 (空闲高), CPHA=1 (第二沿采样) → SPI_Mode 3
+ *   - 模式: CPOL=0 (空闲低), CPHA=0 (上升沿采样) → SPI_Mode 0（SD 卡标准模式）
  *   - 数据宽度: 8-bit
  *   - 位序: MSB first
  *   - NSS: 软件管理（CS 由 GPIO 手动控制，BSP_SD_CS_Low/High）
@@ -67,16 +67,16 @@ void BSP_SPI2_Init(void)
     GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-    /* PB14=MISO: 浮空输入 */
+        /* PB14=MISO: 内部上拉（避免悬空时读到 0） */
     GPIO_InitStruct.GPIO_Pin  = GPIO_Pin_14;
-    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IPU;
     GPIO_Init(GPIOB, &GPIO_InitStruct);
 
     SPI_InitStruct.SPI_Direction         = SPI_Direction_2Lines_FullDuplex;
     SPI_InitStruct.SPI_Mode              = SPI_Mode_Master;
     SPI_InitStruct.SPI_DataSize          = SPI_DataSize_8b;
-    SPI_InitStruct.SPI_CPOL              = SPI_CPOL_High;
-    SPI_InitStruct.SPI_CPHA              = SPI_CPHA_2Edge;
+    SPI_InitStruct.SPI_CPOL              = SPI_CPOL_Low;      /* SD 卡 SPI Mode 0: 空闲低 */
+    SPI_InitStruct.SPI_CPHA              = SPI_CPHA_1Edge;    /* 第一沿（上升沿）采样 */
     SPI_InitStruct.SPI_NSS               = SPI_NSS_Soft;
     SPI_InitStruct.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_256; /* 36MHz/256≈140kHz, SD规范要求初始化期<=400kHz */
     SPI_InitStruct.SPI_FirstBit          = SPI_FirstBit_MSB;
@@ -111,21 +111,20 @@ uint8_t SD_SPI_Init(void)
     BSP_SD_CS_High();
     for (int i = 0; i < 10; i++) SPI2_SendRecv(0xFF);
 
-    /* CMD0: GO_IDLE_STATE */
-    BSP_SD_CS_Low();
+    /* CMD0: GO_IDLE_STATE（重试时重置 CS 以复位卡内 SPI 状态机） */
     retry = 100;
     do {
+        BSP_SD_CS_Low();
         SPI2_SendRecv(0x40); SPI2_SendRecv(0); SPI2_SendRecv(0);
         SPI2_SendRecv(0); SPI2_SendRecv(0); SPI2_SendRecv(0x95);
         r1 = SPI2_SendRecv(0xFF);
+        BSP_SD_CS_High();
+        SPI2_SendRecv(0xFF);                       /* 8 个虚拟时钟 */
     } while (r1 != 0x01 && --retry);
-    if (!retry) { BSP_SD_CS_High(); return 1; }
+    if (!retry) { return 1; }
 
-    /* CMD8: SEND_IF_COND (电压 3.3V, check pattern 0xAA)
-       SD v2.0 规范要求在 ACMD41 前发 CMD8，否则卡可能忽略 HCS 位。
-       - r1 == 0x01: SD v2.0，后续 ACMD41 的 HCS 位生效（支持 SDHC）
-       - r1 == 0x05: SD v1.x（非法命令），HCS 位被忽略，按标准容量初始化
-       SPI 模式下 CMD0/CMD8 需要正确 CRC7。 */
+    /* CMD8: SEND_IF_COND (电压 3.3V, check pattern 0xAA) */
+    BSP_SD_CS_Low();
     SPI2_SendRecv(0x48);                        /* CMD8 = 0x40+8 */
     SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
     SPI2_SendRecv(0x01); SPI2_SendRecv(0xAA);   /* arg = 0x000001AA */
@@ -136,22 +135,23 @@ uint8_t SD_SPI_Init(void)
         SPI2_SendRecv(0xFF); SPI2_SendRecv(0xFF);
         SPI2_SendRecv(0xFF); SPI2_SendRecv(0xFF);
     }
-    /* r1 == 0x05 (SD v1.x) 无 R7 体；其它异常值亦不读，直接进 ACMD41，
-       由 ACMD41 重试循环兜底（不改变现有 HCS=1 的 ACMD41，v1.x 会忽略 HCS）。 */
+    BSP_SD_CS_High();
+    SPI2_SendRecv(0xFF);                        /* 8 个虚拟时钟 */
 
-    /* ACMD41: SD_SEND_OP_COND */
+    /* ACMD41: SD_SEND_OP_COND（每次重试前重置 CS） */
     retry = 1000;
     do {
+        BSP_SD_CS_Low();
         SPI2_SendRecv(0x77); SPI2_SendRecv(0); SPI2_SendRecv(0);
         SPI2_SendRecv(0); SPI2_SendRecv(0); SPI2_SendRecv(0xFF);
         SPI2_SendRecv(0xFF);
         SPI2_SendRecv(0x69); SPI2_SendRecv(0x40); SPI2_SendRecv(0);
         SPI2_SendRecv(0); SPI2_SendRecv(0); SPI2_SendRecv(0xFF);
         r1 = SPI2_SendRecv(0xFF);
+        BSP_SD_CS_High();
+        SPI2_SendRecv(0xFF);                    /* 8 个虚拟时钟 */
     } while (r1 != 0x00 && --retry);
 
-    BSP_SD_CS_High();
-    SPI2_SendRecv(0xFF);
     if (r1 != 0x00) return 1;
 
     /* 初始化成功, 提速至 18MHz 用于后续读写 */
