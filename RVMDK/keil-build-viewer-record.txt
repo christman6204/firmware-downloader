@@ -9,7 +9,7 @@
         52          0          0          0          0          0   cpu_a.o
        540          0          0         28         16          0   cpu_core.o
        138          0       1024          4          0          0   crc32.o
-       268          0        171          3          0          0   diskio.o
+       264          0        171          3          0          0   diskio.o
       3418          0        128          6          0          0   ff.o
        316          0          0          2         88          0   ff_ucos3.o
        188          0          0          4       4168          0   lib_mem.o
@@ -33,7 +33,7 @@
        812          0          0          0          0          0   os_tmr.o
          0          0          0        200       1396          0   os_var.o
       1130          0          0          2          0          0   protocol.o
-       460          0          0          2       1096          0   sd_card.o
+       456          0          0          2       1096          0   sd_card.o
         36          0        304          0       1024          0   startup_stm32f10x_hd.o
        448          0          0          0          0          0   stm32f10x_gpio.o
         38          0          0          0          0          0   stm32f10x_it.o
@@ -52,7 +52,7 @@ Memory Map of the image
 
 	Load Region LR_VECTOR 
 
-		Execution Region ER_VECTOR (Exec base: 0x08000000, Size: 0x0000AFAC, Max: 0x00020000, END)
+		Execution Region ER_VECTOR (Exec base: 0x08000000, Size: 0x0000AFA4, Max: 0x00020000, END)
 
 		Execution Region RW_IRAM1 (Exec base: 0x20000000, Size: 0x000065F0, Max: 0x00010000, END)
 

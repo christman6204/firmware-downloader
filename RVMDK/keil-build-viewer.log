@@ -32,7 +32,7 @@
 
 [region info]
 [load region] LR_VECTOR
-	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000AFAC [memory type] 2 [memory ID] 3
+	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000AFA4 [memory type] 2 [memory ID] 3
 
 	[execution region] RW_IRAM1, 0x20000000, 0x00010000, 0x000065F0 [memory type] 1 [memory ID] 2
 		[ZI block] addr: 0x20000140, size: 0x000064B0 (25776)
@@ -171,7 +171,7 @@
 
 [record region info]
 [load region] LR_VECTOR
-	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000AFAC [type] 2 [ID] 3
+	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000AFA4 [type] 2 [ID] 3
 	[execution region] RW_IRAM1, 0x20000000, 0x00010000, 0x000065F0 [type] 1 [ID] 2
 -----------------------------------------------------------------------------------------------------------------------
                              FILE(s)                            |         RAM (byte)       |       FLASH (byte)       |
@@ -186,7 +186,7 @@
 ..\uc-cpu\ARM-Cortex-M3\RealView\cpu_a.asm():                   |           0              |          52              |
 ..\uc-cpu\cpu_core.c():                                         |          44              |         568              |
 ..\app\crc32.c():                                               |           4              |        1166              |
-..\Libraries\FatFs\diskio.c():                                  |           3              |         442              |
+..\Libraries\FatFs\diskio.c():                                  |           3              |         438              |
 ..\Libraries\FatFs\ff.c():                                      |           6              |        3552              |
 ..\Libraries\FatFs\ff_ucos3.c():                                |          90              |         318              |
 ..\uc-lib\lib_mem.c():                                          |        4172              |         192              |
@@ -210,7 +210,7 @@
 ..\ucos-iii\Source\os_tmr.c():                                  |           0              |         812              |
 ..\ucos-iii\Source\os_var.c():                                  |        1596              |         200              |
 ..\app\protocol.c():                                            |           2              |        1132              |
-..\app\sd_card.c():                                             |        1098              |         462              |
+..\app\sd_card.c():                                             |        1098              |         458              |
 ..\Libraries\CMSIS\startup\startup_stm32f10x_hd.s():            |        1024              |         340              |
 ..\Libraries\FWlib\src\stm32f10x_gpio.c():                      |           0              |         448              |
 ..\stm32f10x_it.c():                                            |           0              |          38              |
@@ -236,4 +236,4 @@ LR_VECTOR
 [htm file path] D:\claude\downloader\downloader\RVMDK\D:\output\MDK\IL-800\DEBUG\IL800_Loader_debug.htm
 =============================================================================================================================
 
-run time: 0.086 s
+run time: 0.091 s
