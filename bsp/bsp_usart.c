@@ -59,7 +59,7 @@ void BSP_USART_Init(void)
     GPIO_Init(GPIOA, &GPIO_InitStruct);
 
     GPIO_InitStruct.GPIO_Pin  = GPIO_Pin_10;           /* RX */
-    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IN_FLOATING;
+    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IPU;         /* 上拉抑制空闲噪声 */
     GPIO_Init(GPIOA, &GPIO_InitStruct);
 
     USART_InitStruct.USART_BaudRate            = 38400;   /* USART1 下载通讯波特率 */

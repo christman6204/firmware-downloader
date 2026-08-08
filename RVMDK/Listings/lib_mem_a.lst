@@ -444,11 +444,11 @@ ARM Macro Assembler    Page 7
   310 00000220         
   311 00000220                 END
 Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M3 --apcs=interw
-ork --depend=d:\output\mdk\il-800\debug\lib_mem_a.d -od:\output\mdk\il-800\debu
-g\lib_mem_a.o -IC:\Users\XJJ\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\D
-evice\Include -IC:\Keil_v5\ARM\CMSIS\Include --predefine="__MICROLIB SETA 1" --
-predefine="__UVISION_VERSION SETA 531" --predefine="STM32F10X_HD SETA 1" --list
-=.\listings\lib_mem_a.lst ..\uc-lib\Ports\ARM-Cortex-M3\RealView\lib_mem_a.asm
+ork --depend=d:\output\mdk\il-800-fd\lib_mem_a.d -od:\output\mdk\il-800-fd\lib_
+mem_a.o -IC:\Users\XJJ\AppData\Local\Arm\Packs\Keil\STM32F1xx_DFP\2.4.1\Device\
+Include -IC:\Keil_v5\ARM\CMSIS\Include --predefine="__MICROLIB SETA 1" --predef
+ine="__UVISION_VERSION SETA 531" --predefine="STM32F10X_HD SETA 1" --list=.\lis
+tings\lib_mem_a.lst ..\uc-lib\Ports\ARM-Cortex-M3\RealView\lib_mem_a.asm
 
 
 

@@ -15,8 +15,8 @@
 
 [Device] STM32F103VE
 [Target name] 
-[Output name] IL800_Loader_debug
-[Output path] D:\output\MDK\IL-800\DEBUG\
+[Output name] IL800_FD
+[Output path] D:\output\MDK\IL-800-FD\
 [Listing path] .\Listings\
 [Is has pack] 1
 [Is enbale LTO] 0
@@ -28,11 +28,11 @@
 [memory info]
 [name] IRAM [base addr] 0x20000000 [size] 0x00010000 [type] 1 [off-chip] 0 [is pack] 1 [ID] 2 
 [name] IROM [base addr] 0x08000000 [size] 0x00080000 [type] 2 [off-chip] 0 [is pack] 1 [ID] 3 
-[map file path] D:\claude\downloader\downloader\RVMDK\Listings\IL800_Loader_debug.map
+[map file path] D:\claude\downloader\downloader\RVMDK\Listings\IL800_FD.map
 
 [region info]
 [load region] LR_VECTOR
-	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000C368 [memory type] 2 [memory ID] 3
+	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000C3F0 [memory type] 2 [memory ID] 3
 
 	[execution region] RW_IRAM1, 0x20000000, 0x00010000, 0x00008010 [memory type] 1 [memory ID] 2
 		[ZI block] addr: 0x20000140, size: 0x00007ED0 (32464)
@@ -174,7 +174,7 @@
 
 [record region info]
 [load region] LR_VECTOR
-	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000C360 [type] 2 [ID] 3
+	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000C368 [type] 2 [ID] 3
 	[execution region] RW_IRAM1, 0x20000000, 0x00010000, 0x00008010 [type] 1 [ID] 2
 -----------------------------------------------------------------------------------------------------------------------
                              FILE(s)                            |         RAM (byte)       |       FLASH (byte)       |
@@ -184,7 +184,7 @@
 ..\bsp\bsp_gpio.c():                                            |           0              |         360              |
 ..\bsp\bsp_iwdg.c():                                            |           0              |           8              |
 ..\bsp\bsp_spi_sd.c():                                          |           1              |        1707              |
-..\bsp\bsp_usart.c():                                           |         558              |         902  [+8]        |
+..\bsp\bsp_usart.c():                                           |         558              |         850  [-52]       |
 ..\Libraries\CMSIS\core_cm3.c():                                |           0              |           0              |
 ..\uc-cpu\ARM-Cortex-M3\RealView\cpu_a.asm():                   |           0              |          52              |
 ..\uc-cpu\cpu_core.c():                                         |          44              |         568              |
@@ -206,14 +206,14 @@
 ..\ucos-iii\Source\os_mutex.c():                                |           0              |        2824              |
 ..\ucos-iii\Source\os_prio.c():                                 |           4              |         140              |
 ..\ucos-iii\Source\os_q.c():                                    |           0              |        1464              |
-..\ucos-iii\Source\os_sem.c():                                  |           0              |        1400              |
+..\ucos-iii\Source\os_sem.c():                                  |           0              |        1536  [+136]      |
 ..\ucos-iii\Source\os_stat.c():                                 |           0              |        1772              |
 ..\ucos-iii\Source\os_task.c():                                 |           0              |        5460              |
 ..\ucos-iii\Source\os_tick.c():                                 |           0              |        1348              |
 ..\ucos-iii\Source\os_time.c():                                 |           0              |        1020              |
 ..\ucos-iii\Source\os_tmr.c():                                  |           0              |         812              |
 ..\ucos-iii\Source\os_var.c():                                  |        1596              |         200              |
-..\app\protocol.c():                                            |           2              |        1132              |
+..\app\protocol.c():                                            |           2              |        1184  [+52]       |
 ..\app\sd_card.c():                                             |        3696              |        2150              |
 ..\Libraries\CMSIS\startup\startup_stm32f10x_hd.s():            |        1024              |         340              |
 ..\Libraries\FWlib\src\stm32f10x_gpio.c():                      |           0              |         448              |
@@ -236,9 +236,9 @@ LR_VECTOR
                 RW_IRAM1   [0x20000000]|¡ö¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ_________________________| (  32.0 KB /  64.0 KB )  50.0%  
  
         FLASH 1            [0x08000000 | 0x00080000 (524288)]
-                ER_VECTOR  [0x08000000]|¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö_______________________________| (  48.8 KB / 128.0 KB )  38.2%  [+8]
+                ER_VECTOR  [0x08000000]|¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö_______________________________| (  48.9 KB / 128.0 KB )  38.3%  [+136]
  
-[htm file path] D:\claude\downloader\downloader\RVMDK\D:\output\MDK\IL-800\DEBUG\IL800_Loader_debug.htm
+[htm file path] D:\claude\downloader\downloader\RVMDK\D:\output\MDK\IL-800-FD\IL800_FD.htm
 =============================================================================================================================
 
-run time: 0.101 s
+run time: 0.091 s

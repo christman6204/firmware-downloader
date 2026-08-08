@@ -48,8 +48,8 @@
             <NotGenerated>0</NotGenerated>
             <InvalidFlash>1</InvalidFlash>
           </TargetStatus>
-          <OutputDirectory>D:\output\MDK\IL-800\DEBUG\</OutputDirectory>
-          <OutputName>IL800_Loader_debug</OutputName>
+          <OutputDirectory>D:\output\MDK\IL-800-FD\</OutputDirectory>
+          <OutputName>IL800_FD</OutputName>
           <CreateExecutable>1</CreateExecutable>
           <CreateLib>0</CreateLib>
           <CreateHexFile>1</CreateHexFile>
