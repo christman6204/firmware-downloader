@@ -186,13 +186,18 @@ uint8_t SD_SPI_Init(void)
             {
                 uint32_t cnt = 0xFFFu;
                 BSP_SD_CS_Low();
-                /* CMD55 */
+                /* CMD55: APP_CMD 前缀，必须紧贴 ACMD41 发送 */
                 SPI2_SendRecv(0x77);
                 SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
                 SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
                 SPI2_SendRecv(0xFF);
-                (void)SPI2_SendRecv(0xFF);
-                /* ACMD41 */
+                /* 轮询 CMD55 的 R1（等待卡处理完 APP_CMD 前缀） */
+                {
+                    uint32_t c55 = 0xFFFu;
+                    uint8_t  r55 = 0xFFu;
+                    do { r55 = SPI2_SendRecv(0xFF); } while (r55 == 0xFFu && --c55);
+                }
+                /* ACMD41: arg=0x40000000 (HCS=1) */
                 SPI2_SendRecv(0x69);
                 SPI2_SendRecv(0x40); SPI2_SendRecv(0x00);
                 SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
