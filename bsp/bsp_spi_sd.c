@@ -108,88 +108,103 @@ static uint8_t SPI2_SendRecv(uint8_t byte)
     return (uint8_t)SPI_I2S_ReceiveData(SPI2);
 }
 
-/* SD 卡 SPI 模式初始化: CMD0 -> CMD8 -> ACMD41 -> 就绪 */
+/* 等待 SD 卡返回指定响应字节（与测试工程一致：最多 4095 次轮询） */
+static uint8_t SD_WaitResponse(uint8_t expected)
+{
+    uint32_t count = 0xFFF;
+    uint8_t  r1;
+    do {
+        r1 = SPI2_SendRecv(0xFF);
+    } while (r1 != expected && --count);
+    return (r1 == expected) ? 0u : 1u;   /* 0=成功, 1=超时 */
+}
+
+/* SD 卡 SPI 模式初始化: CMD0 -> CMD8 -> ACMD41 -> 就绪
+   （流程完全对齐测试工程） */
 uint8_t SD_SPI_Init(void)
 {
-    uint8_t r1;
-    uint16_t retry;
-
     BSP_SD_CS_High();
     for (int i = 0; i < 10; i++) SPI2_SendRecv(0xFF);
 
-    /* CMD0: GO_IDLE_STATE（重试时重置 CS 以复位卡内 SPI 状态机） */
-    retry = 100;
-    do {
-        BSP_SD_CS_Low();
-        SPI2_SendRecv(0x40); SPI2_SendRecv(0); SPI2_SendRecv(0);
-        SPI2_SendRecv(0); SPI2_SendRecv(0); SPI2_SendRecv(0x95);
-        r1 = SPI2_SendRecv(0xFF);
-        BSP_SD_CS_High();
-        SPI2_SendRecv(0xFF);                       /* 8 个虚拟时钟 */
-    } while (r1 != 0x01 && --retry);
-    if (!retry) {
-        BSP_USART2_Printf("[SD] CMD0 fail, R1=0x%02X\r\n", r1);
-        return 1;
-    }
-
-    /* CMD8: SEND_IF_COND (电压 3.3V, check pattern 0xAA) */
+    /* CMD0: GO_IDLE_STATE */
     BSP_SD_CS_Low();
-    SPI2_SendRecv(0x48);                        /* CMD8 = 0x40+8 */
+    /* 发命令帧: cmd | 0x40, arg=0x00000000, CRC=0x95 */
+    SPI2_SendRecv(0x40);
     SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
-    SPI2_SendRecv(0x01); SPI2_SendRecv(0xAA);   /* arg = 0x000001AA */
-    SPI2_SendRecv(0x87);                        /* CRC7 for CMD8 with 0x1AA arg */
-    r1 = SPI2_SendRecv(0xFF);                   /* R1 */
-    BSP_USART2_Printf("[SD] CMD8 R1=0x%02X\r\n", r1);
-    if (r1 == 0x01) {
-        /* SD v2.0: 读 4 字节 R7 应答体（电压窗口 + check pattern 回显） */
-        SPI2_SendRecv(0xFF); SPI2_SendRecv(0xFF);
-        SPI2_SendRecv(0xFF); SPI2_SendRecv(0xFF);
+    SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
+    SPI2_SendRecv(0x95);
+    if (SD_WaitResponse(0x01u)) {
+        BSP_SD_CS_High();
+        BSP_USART2_Printf("[SD] CMD0 fail\r\n");
+        return 1;
     }
     BSP_SD_CS_High();
-    SPI2_SendRecv(0xFF);                        /* 8 个虚拟时钟 */
+    SPI2_SendRecv(0xFF);                       /* 8 个虚拟时钟 */
 
-    /* ACMD41: SD_SEND_OP_COND（每次重试前重置 CS） */
-    retry = 1000;
-    do {
-        BSP_SD_CS_Low();
-        SPI2_SendRecv(0x77); SPI2_SendRecv(0); SPI2_SendRecv(0);
-        SPI2_SendRecv(0); SPI2_SendRecv(0); SPI2_SendRecv(0xFF);
-        SPI2_SendRecv(0xFF);
-        SPI2_SendRecv(0x69); SPI2_SendRecv(0x40); SPI2_SendRecv(0);
-        SPI2_SendRecv(0); SPI2_SendRecv(0); SPI2_SendRecv(0xFF);
-        r1 = SPI2_SendRecv(0xFF);
-        BSP_SD_CS_High();
-        SPI2_SendRecv(0xFF);                    /* 8 个虚拟时钟 */
-    } while (r1 != 0x00 && --retry);
-    if (r1 != 0x00) {
-        BSP_USART2_Printf("[SD] ACMD41 fail, R1=0x%02X\r\n", r1);
-        return 1;
+    /* CMD8: SEND_IF_COND (arg=0x000001AA, CRC=0x87) */
+    BSP_SD_CS_Low();
+    SPI2_SendRecv(0x48);
+    SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
+    SPI2_SendRecv(0x01); SPI2_SendRecv(0xAA);
+    SPI2_SendRecv(0x87);
+    {
+        uint8_t r7 = SPI2_SendRecv(0xFF);               /* R1 */
+        BSP_USART2_Printf("[SD] CMD8 R1=0x%02X\r\n", r7);
+        if (r7 == 0x01u) {
+            /* SD v2.0: 读 4 字节 R7 体（电压窗口 + check pattern 回显） */
+            (void)SPI2_SendRecv(0xFF); (void)SPI2_SendRecv(0xFF);
+            (void)SPI2_SendRecv(0xFF); (void)SPI2_SendRecv(0xFF);
+        }
+    }
+    BSP_SD_CS_High();
+    SPI2_SendRecv(0xFF);
+
+    /* ACMD41: SD_SEND_OP_COND (CMD55 + ACMD41, HCS=1) */
+    {
+        uint16_t acmd_retry = 1000;
+        uint8_t  r1 = 0xFF;
+        do {
+            BSP_SD_CS_Low();
+            /* CMD55: APP_CMD */
+            SPI2_SendRecv(0x77);
+            SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
+            SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
+            SPI2_SendRecv(0xFF);
+            (void)SPI2_SendRecv(0xFF);                  /* 丢弃 CMD55 的 R1 */
+            /* ACMD41: arg=0x40000000 (HCS=1) */
+            SPI2_SendRecv(0x69);
+            SPI2_SendRecv(0x40); SPI2_SendRecv(0x00);
+            SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
+            SPI2_SendRecv(0xFF);
+            r1 = SPI2_SendRecv(0xFF);                   /* 读 R1 */
+            BSP_SD_CS_High();
+            SPI2_SendRecv(0xFF);
+        } while (r1 != 0x00u && --acmd_retry);
+        if (r1 != 0x00u) {
+            BSP_USART2_Printf("[SD] ACMD41 fail, R1=0x%02X\r\n", r1);
+            return 1;
+        }
     }
 
-    /* ---- 初始化成功 ---- */
-    BSP_USART2_Printf("[SD] Init OK (CMD0->CMD8->ACMD41 passed)\r\n");
+    BSP_USART2_Printf("[SD] Init OK\r\n");
     return 0;
 }
 
 uint8_t SD_SPI_ReadBlock(uint32_t addr, uint8_t *buf)
 {
-    uint8_t r1;
-    uint16_t retry;
-
     BSP_SD_CS_Low();
-    SPI2_SendRecv(0x51);  /* CMD17 */
+    /* CMD17: READ_SINGLE_BLOCK */
+    SPI2_SendRecv(0x51);
     SPI2_SendRecv((addr >> 24) & 0xFF);
     SPI2_SendRecv((addr >> 16) & 0xFF);
     SPI2_SendRecv((addr >> 8) & 0xFF);
     SPI2_SendRecv(addr & 0xFF);
     SPI2_SendRecv(0xFF);
+    /* 等待 R1=0x00 */
+    if (SD_WaitResponse(0x00u)) { BSP_SD_CS_High(); return 1; }
 
-    r1 = SPI2_SendRecv(0xFF);
-    if (r1 != 0x00) { BSP_SD_CS_High(); return 1; }
-
-    retry = 65535;
-    while (SPI2_SendRecv(0xFF) != 0xFE && --retry);
-    if (!retry) { BSP_SD_CS_High(); return 2; }
+    /* 等待 Data Token 0xFE */
+    if (SD_WaitResponse(0xFEu)) { BSP_SD_CS_High(); return 2; }
 
     for (uint16_t i = 0; i < SD_BLOCK_SIZE; i++)
         buf[i] = SPI2_SendRecv(0xFF);
