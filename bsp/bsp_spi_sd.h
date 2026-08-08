@@ -16,4 +16,7 @@ uint8_t SD_SPI_WriteBlock(uint32_t addr, const uint8_t *buf);
    成功返回 0。用于查询卡容量等。 */
 uint8_t SD_SPI_ReadCSD(uint8_t csd[16]);
 
+/* 返回卡寻址模式：1=SDHC(块寻址), 0=SDSC(字节寻址) */
+uint8_t SD_SPI_IsBlockAddr(void);
+
 #endif

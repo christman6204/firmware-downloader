@@ -307,7 +307,7 @@ void SD_PrintInfo(void)
     BSP_USART2_Printf("\r\n[SD] ===== Card Info =====\r\n");
 
     /* ---- 卡类型 ---- */
-    BSP_USART2_Printf("[SD] Type: %s\r\n", g_card_blockaddr ? "SDHC/SDXC" : "SDSC");
+    BSP_USART2_Printf("[SD] Type: %s\r\n", SD_SPI_IsBlockAddr() ? "SDHC/SDXC" : "SDSC");
 
     /* ---- CMD9 读 CSD, 算容量 ---- */
     if (SD_SPI_ReadCSD(csd) != 0u) {

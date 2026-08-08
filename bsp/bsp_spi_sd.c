@@ -345,3 +345,9 @@ uint8_t SD_SPI_ReadCSD(uint8_t csd[16])
     CPU_CRITICAL_EXIT();
     return 0;
 }
+
+/* 返回卡寻址模式：1=SDHC(块寻址), 0=SDSC(字节寻址) */
+uint8_t SD_SPI_IsBlockAddr(void)
+{
+    return g_card_blockaddr;
+}
