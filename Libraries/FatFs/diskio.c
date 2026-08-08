@@ -24,7 +24,6 @@
 #include "ff.h"         /* 间接引入 integer.h / ffconf.h / diskio.h */
 #include "diskio.h"
 #include "bsp_spi_sd.h" /* SD 卡块读驱动 */
-#include "bsp_usart.h"   /* BSP_USART2_Printf for sector0 debug */
 #include "bsp_gpio.h"   /* BSP_SD_CS_Low/High（SD_SPI_Init 内部已用） */
 
 /* 单卷状态：b7 = 已初始化标志 (位掩码用 STA_NOINIT 取反) */
@@ -92,13 +91,6 @@ DRESULT disk_read (BYTE pdrv, BYTE* buff, LBA_t sector, UINT count)
             return RES_ERROR;
         }
     }
-
-    /* 调试：每个扇区读请求 + 首4字节 + 510签名 */
-    BSP_USART2_Printf("[SD] disk_read sector=%lu count=%u"
-                      "  [0..3]=%02X%02X%02X%02X  sig=%02X%02X\r\n",
-                      (unsigned long)sector, (unsigned)count,
-                      buff[0], buff[1], buff[2], buff[3],
-                      buff[510], buff[511]);
 
     return RES_OK;
 }
