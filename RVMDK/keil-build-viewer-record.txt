@@ -9,7 +9,7 @@
         52          0          0          0          0          0   cpu_a.o
        540          0          0         28         16          0   cpu_core.o
        138          0       1024          4          0          0   crc32.o
-       292          0          0          3          0          0   diskio.o
+       176          0         76          3          0          0   diskio.o
       3418          0        128          6          0          0   ff.o
        316          0          0          2         88          0   ff_ucos3.o
        188          0          0          4       4168          0   lib_mem.o
@@ -52,7 +52,7 @@ Memory Map of the image
 
 	Load Region LR_VECTOR 
 
-		Execution Region ER_VECTOR (Exec base: 0x08000000, Size: 0x0000AEC0, Max: 0x00020000, END)
+		Execution Region ER_VECTOR (Exec base: 0x08000000, Size: 0x0000AE98, Max: 0x00020000, END)
 
 		Execution Region RW_IRAM1 (Exec base: 0x20000000, Size: 0x000065F0, Max: 0x00010000, END)
 

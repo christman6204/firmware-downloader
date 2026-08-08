@@ -23,6 +23,10 @@
 #include "bsp_usart.h"   /* BSP_USART2_Printf for [SD] debug */
 #include "os.h"           /* CPU_CRITICAL_ENTER/EXIT, OSTimeGet/Dly */
 
+/* 卡类型：0=SDSC(字节地址), 1=SDHC(块地址)。
+   CMD17 地址参数据此决定是否 ×512。 */
+static uint8_t g_card_blockaddr = 0u;
+
 /* ---- SPI 字节收发（与测试工程 SD_WriteByte 一致） ---- */
 static uint8_t SPI2_SendRecv(uint8_t byte)
 {
@@ -162,6 +166,34 @@ uint8_t SD_SPI_Init(void)
         }
     }
 
+    /* ---- CMD58: READ_OCR, 检查 CCS 位判断 SDHC/SDSC ----
+       OCR bit30 (CCS): 1=SDHC/SDXC(块寻址), 0=SDSC(字节寻址)。
+       SDSC 卡即使 ACMD41 设了 HCS=1 也保持字节寻址，CMD17 地址必须 ×512。 */
+    CPU_CRITICAL_ENTER();
+    BSP_SD_CS_Low();
+    SD_SendCmd(0x3Au, 0x00000000u, 0xFFu);                 /* CMD58 */
+    {
+        uint8_t  r1;
+        uint32_t c = 0xFFFu;
+        uint8_t  ocr[4];
+        do { r1 = SPI2_SendRecv(0xFF); } while (r1 == 0xFFu && --c);
+        if (r1 == 0x00u) {
+            ocr[0] = SPI2_SendRecv(0xFF); ocr[1] = SPI2_SendRecv(0xFF);
+            ocr[2] = SPI2_SendRecv(0xFF); ocr[3] = SPI2_SendRecv(0xFF);
+            g_card_blockaddr = (ocr[0] & 0x40u) ? 1u : 0u;  /* CCS = bit30 = ocr[0] bit6 */
+            BSP_USART2_Printf("[SD] CMD58 OCR=%02X%02X%02X%02X  CCS=%u (%s)\r\n",
+                              ocr[0], ocr[1], ocr[2], ocr[3],
+                              g_card_blockaddr,
+                              g_card_blockaddr ? "SDHC" : "SDSC");
+        } else {
+            /* CMD58 失败：保守按 SDSC 处理（字节寻址） */
+            g_card_blockaddr = 0u;
+            BSP_USART2_Printf("[SD] CMD58 fail R1=0x%02X, assume SDSC\r\n", r1);
+        }
+    }
+    BSP_SD_CS_High(); SPI2_SendRecv(0xFF);
+    CPU_CRITICAL_EXIT();
+
     BSP_USART2_Printf("[SD] Init OK\r\n");
     return 0;
 }
@@ -178,6 +210,11 @@ uint8_t SD_SPI_Init(void)
 uint8_t SD_SPI_ReadBlock(uint32_t addr, uint8_t *buf)
 {
     CPU_SR_ALLOC();
+
+    /* SDSC 卡用字节地址，SDHC 用块(LBA)地址 */
+    if (!g_card_blockaddr) {
+        addr *= SD_BLOCK_SIZE;
+    }
 
     CPU_CRITICAL_ENTER();
     BSP_SD_CS_Low();
