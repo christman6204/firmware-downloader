@@ -7,7 +7,6 @@
 #define SD_BLOCK_SIZE  512u
 
 void    BSP_SPI2_Init(void);
-void    SD_SPI_SetHighSpeed(void);
 uint8_t SD_SPI_Init(void);
 uint8_t SD_SPI_ReadBlock(uint32_t addr, uint8_t *buf);
 
