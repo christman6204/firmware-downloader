@@ -136,6 +136,11 @@ uint8_t SD_FindLatestFirmware(void)
         fr = f_readdir(&dir, &fno);
         if (fr != FR_OK || fno.fname[0] == '\0') { break; }
 
+        /* 调试: 打印每个目录项 */
+        BSP_USART2_Printf("[SD] dir: '%s' attr=0x%02X size=%lu\r\n",
+                          fno.fname, (unsigned)fno.fattrib,
+                          (unsigned long)fno.fsize);
+
         /* 跳过目录 */
         if (fno.fattrib & AM_DIR) { continue; }
 
