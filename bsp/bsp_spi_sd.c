@@ -253,3 +253,58 @@ uint8_t SD_SPI_ReadBlock(uint32_t addr, uint8_t *buf)
     CPU_CRITICAL_EXIT();
     return 0;
 }
+
+/*
+ * CMD24 写入单个 512 字节块。
+ *   1. CS_Low + SendCmd(CMD24, addr, 0xFF)
+ *   2. 等 R1=0x00
+ *   3. 发 Data Token 0xFE + 512 字节数据 + 2 字节 CRC
+ *   4. 读 Data Response (b & 0x1F == 0x05 表示接受)
+ *   5. 等待 busy 完成（卡拉低 DO，读到非 0x00 即完成）
+ *   6. CS_High + dummy
+ */
+uint8_t SD_SPI_WriteBlock(uint32_t addr, const uint8_t *buf)
+{
+    CPU_SR_ALLOC();
+    uint8_t  resp;
+    uint32_t cnt;
+
+    /* SDSC 卡用字节地址 */
+    if (!g_card_blockaddr) {
+        addr *= SD_BLOCK_SIZE;
+    }
+
+    CPU_CRITICAL_ENTER();
+    BSP_SD_CS_Low();
+    SD_SendCmd(0x18u, addr, 0xFFu);                        /* CMD24 */
+
+    if (SD_GetResponse(0x00u)) {                           /* R1 */
+        BSP_SD_CS_High(); SPI2_SendRecv(0xFF);
+        CPU_CRITICAL_EXIT();
+        BSP_USART2_Printf("[SD] CMD24 R1 timeout\r\n");
+        return 1;
+    }
+
+    SPI2_SendRecv(0xFEu);                                  /* Data Token */
+    for (uint16_t i = 0; i < SD_BLOCK_SIZE; i++)
+        SPI2_SendRecv(buf[i]);
+    SPI2_SendRecv(0xFF); SPI2_SendRecv(0xFF);              /* CRC16 (dummy) */
+
+    /* Data Response: 等待 (b & 0x1F) == 0x05 (accepted) */
+    cnt = 0xFFFu;
+    do { resp = SPI2_SendRecv(0xFF); } while ((resp & 0x1Fu) != 0x05u && --cnt);
+    if ((resp & 0x1Fu) != 0x05u) {
+        BSP_SD_CS_High(); SPI2_SendRecv(0xFF);
+        CPU_CRITICAL_EXIT();
+        BSP_USART2_Printf("[SD] CMD24 data resp=0x%02X\r\n", resp);
+        return 2;
+    }
+
+    /* 等待 busy 完成：卡写 Flash 期间 DO 拉低(读 0x00)，完成后拉高(读 0xFF) */
+    cnt = 0xFFFFFu;
+    do { resp = SPI2_SendRecv(0xFF); } while (resp == 0x00u && --cnt);
+
+    BSP_SD_CS_High(); SPI2_SendRecv(0xFF);
+    CPU_CRITICAL_EXIT();
+    return 0;
+}

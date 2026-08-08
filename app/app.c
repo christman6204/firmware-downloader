@@ -137,6 +137,7 @@ static  void  AppTaskStart (void *p_arg)
     if (SD_Init() == SD_OK) {
         BSP_USART2_Printf("SD card ready.\r\n");
         Buzzer_Request(BUZZER_CMD_BOOT);      /* SD 有效：一声短鸣 (300ms) */
+        SD_SpeedTest();                       /* 读写测速 */
     } else {
         BSP_USART2_Printf("Warning: SD card not detected.\r\n");
         Buzzer_Request(BUZZER_CMD_ERROR);     /* SD 无效：四声短鸣 (300ms) */

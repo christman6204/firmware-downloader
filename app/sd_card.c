@@ -216,3 +216,84 @@ void SD_FileClose(void)
         g_opened = 0u;
     }
 }
+
+/*---------------------------------------------------------------------------*/
+/* SD_SpeedTest: 块级读写测速                                                 */
+/*   读测试: 连续读 64 个扇区 (32KB), 测平均读速度                              */
+/*   写测试: 备份扇区0 -> 写 pattern -> 读回校验 -> 恢复扇区0, 测写速度         */
+/*---------------------------------------------------------------------------*/
+#include <string.h>
+void SD_SpeedTest(void)
+{
+    static uint8_t buf[SD_BLOCK_SIZE];
+    static uint8_t backup[SD_BLOCK_SIZE];
+    OS_ERR  err;
+    uint32_t i, start, elapsed, bytes;
+    uint32_t test_sectors = 64u;   /* 32KB 读测试 */
+
+    BSP_USART2_Printf("\r\n[SD] ===== Speed Test =====\r\n");
+
+    /* ---- 读测速 ---- */
+    start = OSTimeGet(&err);
+    for (i = 0u; i < test_sectors; i++) {
+        if (SD_SPI_ReadBlock(i, buf) != 0u) {
+            BSP_USART2_Printf("[SD] Read test fail @ sector %lu\r\n", (unsigned long)i);
+            return;
+        }
+    }
+    elapsed = OSTimeGet(&err) - start;       /* ticks @500Hz = 2ms/tick */
+    bytes = test_sectors * SD_BLOCK_SIZE;    /* 32768 bytes */
+    /* 速度 KB/s = bytes / (elapsed*2ms) = bytes / (elapsed/500) = bytes*500/elapsed/1024 */
+    if (elapsed > 0u) {
+        uint32_t speed_kbs = (bytes * 500u / elapsed) / 1024u;
+        uint32_t speed_kbs_frac = ((bytes * 500u * 100u / elapsed) / 1024u) % 100u;
+        BSP_USART2_Printf("[SD] Read: %lu sectors (%lu bytes) in %lu ms\r\n",
+                          (unsigned long)test_sectors, (unsigned long)bytes,
+                          (unsigned long)(elapsed * 2u));
+        BSP_USART2_Printf("[SD] Read speed: %lu.%02lu KB/s\r\n",
+                          (unsigned long)speed_kbs, (unsigned long)speed_kbs_frac);
+    }
+
+    /* ---- 写测速 (备份+写+校验+恢复) ---- */
+    /* 备份扇区 0 */
+    if (SD_SPI_ReadBlock(0u, backup) != 0u) {
+        BSP_USART2_Printf("[SD] Backup sector0 fail\r\n");
+        return;
+    }
+    /* 填充测试 pattern */
+    for (i = 0u; i < SD_BLOCK_SIZE; i++) {
+        buf[i] = (uint8_t)(i ^ 0xA5u);
+    }
+    /* 写扇区 0 并测时 */
+    start = OSTimeGet(&err);
+    if (SD_SPI_WriteBlock(0u, buf) != 0u) {
+        BSP_USART2_Printf("[SD] Write test fail\r\n");
+        /* 恢复 */
+        (void)SD_SPI_WriteBlock(0u, backup);
+        return;
+    }
+    elapsed = OSTimeGet(&err) - start;
+    bytes = SD_BLOCK_SIZE;
+    if (elapsed > 0u) {
+        uint32_t speed_kbs = (bytes * 500u / elapsed) / 1024u;
+        uint32_t speed_kbs_frac = ((bytes * 500u * 100u / elapsed) / 1024u) % 100u;
+        BSP_USART2_Printf("[SD] Write: %lu bytes in %lu ms\r\n",
+                          (unsigned long)bytes, (unsigned long)(elapsed * 2u));
+        BSP_USART2_Printf("[SD] Write speed: %lu.%02lu KB/s\r\n",
+                          (unsigned long)speed_kbs, (unsigned long)speed_kbs_frac);
+    }
+    /* 读回校验 */
+    {
+        static uint8_t rdbuf[SD_BLOCK_SIZE];
+        if (SD_SPI_ReadBlock(0u, rdbuf) != 0u) {
+            BSP_USART2_Printf("[SD] Verify read fail\r\n");
+        } else if (memcmp(rdbuf, buf, SD_BLOCK_SIZE) != 0) {
+            BSP_USART2_Printf("[SD] Verify FAIL (data mismatch)\r\n");
+        } else {
+            BSP_USART2_Printf("[SD] Verify OK (write data correct)\r\n");
+        }
+    }
+    /* 恢复原始扇区 0 */
+    (void)SD_SPI_WriteBlock(0u, backup);
+    BSP_USART2_Printf("[SD] Sector0 restored.\r\n[SD] ===== Test Done =====\r\n");
+}
