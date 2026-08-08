@@ -4,7 +4,7 @@
        360          0          0          0          0          0   bsp_gpio.o
          8          0          0          0          0          0   bsp_iwdg.o
       1706          0          0          1          0          0   bsp_spi_sd.o
-       688          0          0          3        552          0   bsp_usart.o
+       888          0          0          6        552          0   bsp_usart.o
          0          0          0          0          0          0   core_cm3.o
         52          0          0          0          0          0   cpu_a.o
        540          0          0         28         16          0   cpu_core.o
@@ -37,10 +37,11 @@
       2008          0        138          4       3692          0   sd_card.o
         36          0        304          0       1024          0   startup_stm32f10x_hd.o
        448          0          0          0          0          0   stm32f10x_gpio.o
-        38          0          0          0          0          0   stm32f10x_it.o
+        54          0          0          0          0          0   stm32f10x_it.o
         16          0          0          0          0          0   stm32f10x_iwdg.o
        276          0          0         20          0          0   stm32f10x_rcc.o
        112          0          0          0          0          0   stm32f10x_spi.o
+       246          0          0          0          0          0   stm32f10x_tim.o
        442          0          0          0          0          0   stm32f10x_usart.o
        376          0          0          3         44          0   sys_state.o
        328          0          0          0          0          0   system_stm32f10x.o
@@ -53,7 +54,7 @@ Memory Map of the image
 
 	Load Region LR_VECTOR 
 
-		Execution Region ER_VECTOR (Exec base: 0x08000000, Size: 0x0000C154, Max: 0x00020000, END)
+		Execution Region ER_VECTOR (Exec base: 0x08000000, Size: 0x0000C324, Max: 0x00020000, END)
 
 		Execution Region RW_IRAM1 (Exec base: 0x20000000, Size: 0x00007010, Max: 0x00010000, END)
 

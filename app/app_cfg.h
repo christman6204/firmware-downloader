@@ -13,7 +13,7 @@
 #define  APP_TASK_START_STK_SIZE      272u   /* 1088B */
 #define  APP_TASK_KEY_STK_SIZE        256u   /* 1024B */
 #define  APP_TASK_LED_WDG_STK_SIZE    256u   /* 1024B */
-#define  APP_TASK_DOWNLOAD_STK_SIZE   1024u  /* 4096B */
+#define  APP_TASK_DOWNLOAD_STK_SIZE   2048u  /* 8192B (LFN 扫描+协议解析需要较大栈) */
 
 /* ==================== IPC 参数 ==================== */
 #define  APP_KEY_Q_SIZE               8u
