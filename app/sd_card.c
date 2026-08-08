@@ -54,6 +54,7 @@
  */
 #include "sd_card.h"
 #include "bsp_spi_sd.h"        /* BSP_SPI2_Init / SD_SPI_Init / SD_BLOCK_SIZE */
+#include "bsp_usart.h"          /* BSP_USART2_Printf for [SD] debug */
 #include "ff.h"                 /* FatFs API + FATFS/FIL 类型 */
 #include "app_cfg.h"            /* APP_SD_BIN_FILENAME */
 
