@@ -3,7 +3,7 @@
        156          0          0          0          0          0   bsp.o
        360          0          0          0          0          0   bsp_gpio.o
          8          0          0          0          0          0   bsp_iwdg.o
-      2038          0          0          1          0          0   bsp_spi_sd.o
+      1706          0          0          1          0          0   bsp_spi_sd.o
        624          0          0          3        552          0   bsp_usart.o
          0          0          0          0          0          0   core_cm3.o
         52          0          0          0          0          0   cpu_a.o
@@ -34,7 +34,7 @@
        812          0          0          0          0          0   os_tmr.o
          0          0          0        200       1396          0   os_var.o
       1130          0          0          2          0          0   protocol.o
-      2384          0         71          4       5740          0   sd_card.o
+      2008          0        138          4       3692          0   sd_card.o
         36          0        304          0       1024          0   startup_stm32f10x_hd.o
        448          0          0          0          0          0   stm32f10x_gpio.o
         38          0          0          0          0          0   stm32f10x_it.o
@@ -53,8 +53,8 @@ Memory Map of the image
 
 	Load Region LR_VECTOR 
 
-		Execution Region ER_VECTOR (Exec base: 0x08000000, Size: 0x0000C364, Max: 0x00020000, END)
+		Execution Region ER_VECTOR (Exec base: 0x08000000, Size: 0x0000C0E4, Max: 0x00020000, END)
 
-		Execution Region RW_IRAM1 (Exec base: 0x20000000, Size: 0x00007810, Max: 0x00010000, END)
+		Execution Region RW_IRAM1 (Exec base: 0x20000000, Size: 0x00007010, Max: 0x00010000, END)
 
 Image component sizes
