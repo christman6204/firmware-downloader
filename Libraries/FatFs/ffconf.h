@@ -33,7 +33,7 @@
 /---------------------------------------------------------------------------*/
 
 #define FF_CODE_PAGE        437
-#define FF_USE_LFN          1   /* 1 = 启用长文件名（IL_800_001_002.BIN 超 8.3 限制） */
+#define FF_USE_LFN          2   /* 2 = 栈缓冲(线程安全), LFN 需要大栈 */
 #define FF_MAX_LFN          255 /* LFN 最大长度 */
 #define FF_LFN_UNICODE      0   /* 0 = ANSI/OEM */
 #define FF_LFN_BUF          255
