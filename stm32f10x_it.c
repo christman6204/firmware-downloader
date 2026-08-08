@@ -154,6 +154,20 @@ void USART1_IRQHandler(void)
 }
 
 /**
+  * @brief  This function handles TIM3 global interrupt request.
+  *          接收超时计时（300ms 无数据判定帧结束），
+  *          实际处理在 BSP_USART1_TIMEOUT_Handler()（bsp_usart.c）。
+  * @param  None
+  * @retval None
+  */
+void TIM3_IRQHandler(void)
+{
+    OSIntEnter();
+    BSP_USART1_TIMEOUT_Handler();
+    OSIntExit();
+}
+
+/**
   * @}
   */
 

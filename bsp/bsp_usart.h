@@ -18,5 +18,6 @@ uint16_t       BSP_USART1_GetRecvLen(void);
 const uint8_t *BSP_USART1_GetRecvBuf(void);
 void           BSP_USART2_Printf(const char *fmt, ...);
 void           BSP_USART1_IRQHandler(void);
+void           BSP_USART1_TIMEOUT_Handler(void);  /* TIM3 超时中断处理 */
 
 #endif

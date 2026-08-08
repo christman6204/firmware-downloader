@@ -32,7 +32,7 @@
 
 [region info]
 [load region] LR_VECTOR
-	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000C15C [memory type] 2 [memory ID] 3
+	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000C154 [memory type] 2 [memory ID] 3
 
 	[execution region] RW_IRAM1, 0x20000000, 0x00010000, 0x00007010 [memory type] 1 [memory ID] 2
 		[ZI block] addr: 0x20000140, size: 0x00006ED0 (28368)
@@ -173,7 +173,7 @@
 
 [record region info]
 [load region] LR_VECTOR
-	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000C15C [type] 2 [ID] 3
+	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000C154 [type] 2 [ID] 3
 	[execution region] RW_IRAM1, 0x20000000, 0x00010000, 0x00007010 [type] 1 [ID] 2
 -----------------------------------------------------------------------------------------------------------------------
                              FILE(s)                            |         RAM (byte)       |       FLASH (byte)       |
@@ -223,7 +223,7 @@
 ..\Libraries\FWlib\src\stm32f10x_usart.c():                     |           0              |         442              |
 ..\app\sys_state.c():                                           |          47              |         379              |
 ..\Libraries\CMSIS\system_stm32f10x.c():                        |           0              |         328              |
-..\app\task_download.c():                                       |         876              |        3564              |
+..\app\task_download.c():                                       |         876              |        3556              |
 ..\app\task_key.c():                                            |          64              |         280              |
 ..\app\task_led_wdg.c():                                        |           8              |         448              |
 -----------------------------------------------------------------------------------------------------------------------
@@ -239,4 +239,4 @@ LR_VECTOR
 [htm file path] D:\claude\downloader\downloader\RVMDK\D:\output\MDK\IL-800\DEBUG\IL800_Loader_debug.htm
 =============================================================================================================================
 
-run time: 0.099 s
+run time: 0.094 s

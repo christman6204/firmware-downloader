@@ -7,6 +7,41 @@ static uint8_t  g_rx_buf[USART1_RX_BUF_SIZE];
 static volatile uint16_t g_rx_len = 0;
 static uint8_t  g_rx_byte;
 
+/* ---- 接收超时计时 (TIM3, 10ms 周期) ----
+   设备回复可能不连续。判定"一帧结束"的条件:
+     1) 累积字节 > RX_FRAME_READY_LEN (128), 或
+     2) 超过 RX_TIMEOUT_MS (300ms) 没有新数据
+   满足任一条件即上报应用层 (OSSemPost)。*/
+#define RX_TIMEOUT_MS       300u     /* 超时阈值 ms */
+#define RX_TIMEOUT_TICKS    (RX_TIMEOUT_MS / 10u)   /* TIM3 10ms/tick -> 30 */
+#define RX_FRAME_READY_LEN  128u     /* 字节数阈值 */
+static volatile uint16_t g_rx_timeout = 0u;   /* 递减计数器, 0 表示已超时 */
+
+static void BSP_TIM3_Init(void)
+{
+    TIM_TimeBaseInitTypeDef TIM_InitStruct;
+    NVIC_InitTypeDef        NVIC_InitStruct;
+
+    /* TIM3 时钟 = APB1*2 = 72MHz。预分频 7199 -> 10kHz, 重载 99 -> 10ms */
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE);
+
+    TIM_InitStruct.TIM_Period        = 99;        /* 100 计数 = 10ms */
+    TIM_InitStruct.TIM_Prescaler     = 7199;      /* 72MHz/7200 = 10kHz */
+    TIM_InitStruct.TIM_ClockDivision = TIM_CKD_DIV1;
+    TIM_InitStruct.TIM_CounterMode   = TIM_CounterMode_Up;
+    TIM_TimeBaseInit(TIM3, &TIM_InitStruct);
+
+    TIM_ITConfig(TIM3, TIM_IT_Update, ENABLE);
+
+    NVIC_InitStruct.NVIC_IRQChannel                   = TIM3_IRQn;
+    NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority  = 1;
+    NVIC_InitStruct.NVIC_IRQChannelSubPriority         = 1;
+    NVIC_InitStruct.NVIC_IRQChannelCmd                 = ENABLE;
+    NVIC_Init(&NVIC_InitStruct);
+
+    TIM_Cmd(TIM3, ENABLE);
+}
+
 void BSP_USART_Init(void)
 {
     GPIO_InitTypeDef   GPIO_InitStruct;
@@ -81,6 +116,10 @@ void BSP_USART_Init(void)
         }
         while (USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET);
     }
+
+    /* 启动接收超时计时器 (TIM3, 10ms 周期) */
+    BSP_TIM3_Init();
+    g_rx_timeout = 0u;
 }
 
 void BSP_USART1_Send(const uint8_t *buf, uint16_t len)
@@ -95,6 +134,7 @@ void BSP_USART1_Send(const uint8_t *buf, uint16_t len)
 void BSP_USART1_RecvStart(void)
 {
     g_rx_len = 0;
+    g_rx_timeout = 0u;
     USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
 }
 
@@ -118,7 +158,8 @@ void BSP_USART2_Printf(const char *fmt, ...)
     }
 }
 
-/* USART1 中断处理（在 stm32f10x_it.c 中调用） */
+/* USART1 中断处理（在 stm32f10x_it.c 中调用）
+   接收字节时重置 300ms 超时计数器；超过 128 字节立即上报。 */
 void BSP_USART1_IRQHandler(void)
 {
     OS_ERR err;
@@ -128,12 +169,33 @@ void BSP_USART1_IRQHandler(void)
         if (g_rx_len < USART1_RX_BUF_SIZE) {
             g_rx_buf[g_rx_len++] = g_rx_byte;
         }
-    }
+        /* 收到新字节: 重置超时计数 */
+        g_rx_timeout = RX_TIMEOUT_TICKS;
 
-    if (USART_GetITStatus(USART1, USART_IT_IDLE) != RESET) {
-        (void)USART1->SR;
-        (void)USART1->DR;   /* 清 IDLE 标志 */
-        USART_ITConfig(USART1, USART_IT_RXNE, DISABLE);
-        OSSemPost(&g_usart1_rx_sem, OS_OPT_POST_1, &err);
+        /* 累积超过阈值: 立即上报应用层 */
+        if (g_rx_len > RX_FRAME_READY_LEN) {
+            USART_ITConfig(USART1, USART_IT_RXNE, DISABLE);
+            OSSemPost(&g_usart1_rx_sem, OS_OPT_POST_1, &err);
+        }
+    }
+}
+
+/* TIM3 超时中断处理（在 stm32f10x_it.c 中调用）
+   每 10ms 递减计数；归零且收到过数据则上报应用层。 */
+void BSP_USART1_TIMEOUT_Handler(void)
+{
+    OS_ERR err;
+
+    if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET) {
+        TIM_ClearITPendingBit(TIM3, TIM_IT_Update);
+
+        if (g_rx_timeout > 0u) {
+            g_rx_timeout--;
+            if (g_rx_timeout == 0u && g_rx_len > 0u) {
+                /* 300ms 无新数据, 帧结束 */
+                USART_ITConfig(USART1, USART_IT_RXNE, DISABLE);
+                OSSemPost(&g_usart1_rx_sem, OS_OPT_POST_1, &err);
+            }
+        }
     }
 }
