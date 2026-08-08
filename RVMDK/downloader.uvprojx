@@ -1033,6 +1033,11 @@
               <FileType>1</FileType>
               <FilePath>..\Libraries\FatFs\ff_ucos3.c</FilePath>
             </File>
+            <File>
+              <FileName>ffunicode.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Libraries\FatFs\ffunicode.c</FilePath>
+            </File>
           </Files>
         </Group>
       </Groups>

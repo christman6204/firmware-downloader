@@ -24,21 +24,21 @@ WCHAR ff_uni2oem (DWORD uni, WORD cp)
     return 0u;                       /* 非 ASCII: 无法转换 */
 }
 
-/* OEM -> Unicode (零扩展) */
-DWORD ff_oem2uni (WCHAR oem, WORD cp)
+/* OEM -> Unicode (零扩展) — 注意: 官方 ff.h 返回 WCHAR */
+WCHAR ff_oem2uni (WCHAR oem, WORD cp)
 {
     (void)cp;
     if (oem < 128u) {
-        return (DWORD)oem;          /* ASCII 直接映射 */
+        return oem;                 /* ASCII 直接映射 */
     }
     return 0u;                       /* 非 ASCII: 无法转换 */
 }
 
-/* Unicode 大写转换 (ASCII a-z -> A-Z) */
-WCHAR ff_wtoupper (WCHAR c)
+/* Unicode 大写转换 (ASCII a-z -> A-Z) — 注意: 官方 ff.h 参数和返回值都是 DWORD */
+DWORD ff_wtoupper (DWORD c)
 {
     if (c >= 'a' && c <= 'z') {
-        return (WCHAR)(c - ('a' - 'A'));
+        return c - ('a' - 'A');
     }
     return c;
 }
