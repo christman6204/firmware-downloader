@@ -238,17 +238,18 @@ uint8_t SD_SPI_ReadBlock(uint32_t addr, uint8_t *buf)
     SPI2_SendRecv((uint8_t)(addr >> 16));
     SPI2_SendRecv((uint8_t)(addr >> 8));
     SPI2_SendRecv((uint8_t)(addr));
+    SPI2_SendRecv(0xFF);                           /* CRC, 丢弃第 6 字节响应 */
+    /* R1 */
     cnt = 0xFFFu;
-    b   = SPI2_SendRecv(0xFF);                      /* CRC发送 + 收 R1（高速下第一个响应字节即 R1） */
-    while (b == 0xFFu && --cnt) { b = SPI2_SendRecv(0xFF); }
+    do { b = SPI2_SendRecv(0xFF); } while (b == 0xFFu && --cnt);
     if (b != 0x00u) { BSP_SD_CS_High(); CPU_CRITICAL_EXIT();
-        BSP_USART2_Printf("[SD] CMD17 R1=0x%02X (addr=%lu)\r\n", b, addr);
+        BSP_USART2_Printf("[SD] CMD17 R1=0x%02X (addr=%lu)\r\n", b, (unsigned long)addr);
         return 1; }
-
+    /* Data Token */
     cnt = 0xFFFu;
     do { b = SPI2_SendRecv(0xFF); } while (b == 0xFFu && --cnt);
     if (b != 0xFEu) { BSP_SD_CS_High(); CPU_CRITICAL_EXIT();
-        BSP_USART2_Printf("[SD] CMD17 token=0x%02X (addr=%lu)\r\n", b, addr);
+        BSP_USART2_Printf("[SD] CMD17 token=0x%02X (addr=%lu)\r\n", b, (unsigned long)addr);
         return 2; }
 
     for (uint16_t i = 0; i < SD_BLOCK_SIZE; i++)
