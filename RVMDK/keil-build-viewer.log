@@ -32,7 +32,7 @@
 
 [region info]
 [load region] LR_VECTOR
-	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000AFA4 [memory type] 2 [memory ID] 3
+	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000AF90 [memory type] 2 [memory ID] 3
 
 	[execution region] RW_IRAM1, 0x20000000, 0x00010000, 0x000065F0 [memory type] 1 [memory ID] 2
 		[ZI block] addr: 0x20000140, size: 0x000064B0 (25776)
@@ -186,7 +186,7 @@
 ..\uc-cpu\ARM-Cortex-M3\RealView\cpu_a.asm():                   |           0              |          52              |
 ..\uc-cpu\cpu_core.c():                                         |          44              |         568              |
 ..\app\crc32.c():                                               |           4              |        1166              |
-..\Libraries\FatFs\diskio.c():                                  |           3              |         438              |
+..\Libraries\FatFs\diskio.c():                                  |           3              |         418  [-20]       |
 ..\Libraries\FatFs\ff.c():                                      |           6              |        3552              |
 ..\Libraries\FatFs\ff_ucos3.c():                                |          90              |         318              |
 ..\uc-lib\lib_mem.c():                                          |        4172              |         192              |
@@ -231,9 +231,9 @@ LR_VECTOR
                 RW_IRAM1   [0x20000000]|¡ö¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ¡õ_______________________________| (  25.4 KB /  64.0 KB )  39.8%  
  
         FLASH 1            [0x08000000 | 0x00080000 (524288)]
-                ER_VECTOR  [0x08000000]|¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö_________________________________| (  43.9 KB / 128.0 KB )  34.3%  
+                ER_VECTOR  [0x08000000]|¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö¡ö_________________________________| (  43.8 KB / 128.0 KB )  34.3%  [-20]
  
 [htm file path] D:\claude\downloader\downloader\RVMDK\D:\output\MDK\IL-800\DEBUG\IL800_Loader_debug.htm
 =============================================================================================================================
 
-run time: 0.091 s
+run time: 0.089 s

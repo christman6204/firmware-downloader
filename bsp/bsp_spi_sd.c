@@ -138,13 +138,13 @@ uint8_t SD_SPI_Init(void)
     CPU_CRITICAL_ENTER();
     {
         uint32_t cnt = 0xFFFu;
-        uint8_t  r1  = 0xFFu;
+        uint8_t  r1;
         BSP_SD_CS_Low();
         SPI2_SendRecv(0x40);
         SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
         SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
-        SPI2_SendRecv(0x95);
-        do { r1 = SPI2_SendRecv(0xFF); } while (r1 != 0x01u && --cnt);
+        r1 = SPI2_SendRecv(0x95);                  /* 第6字节: CRC+收R1 */
+        while (r1 != 0x01u && --cnt) { r1 = SPI2_SendRecv(0xFF); }
         BSP_SD_CS_High();
         SPI2_SendRecv(0xFF);
         if (r1 != 0x01u) {
@@ -159,13 +159,13 @@ uint8_t SD_SPI_Init(void)
     CPU_CRITICAL_ENTER();
     {
         uint32_t cnt   = 0xFFFu;
-        uint8_t  r7_r1 = 0xFFu;
+        uint8_t  r7_r1;
         BSP_SD_CS_Low();
         SPI2_SendRecv(0x48);
         SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
         SPI2_SendRecv(0x01); SPI2_SendRecv(0xAA);
-        SPI2_SendRecv(0x87);
-        do { r7_r1 = SPI2_SendRecv(0xFF); } while (r7_r1 == 0xFFu && --cnt);
+        r7_r1 = SPI2_SendRecv(0x87);               /* 第6字节: CRC+收R1 */
+        while (r7_r1 == 0xFFu && --cnt) { r7_r1 = SPI2_SendRecv(0xFF); }
         if (r7_r1 == 0x01u) {
             (void)SPI2_SendRecv(0xFF); (void)SPI2_SendRecv(0xFF);
             (void)SPI2_SendRecv(0xFF); (void)SPI2_SendRecv(0xFF);
@@ -184,25 +184,22 @@ uint8_t SD_SPI_Init(void)
         do {
             CPU_CRITICAL_ENTER();
             {
-                uint32_t cnt = 0xFFFu;
+                uint32_t cnt  = 0xFFFu;
+                uint32_t c55  = 0xFFFu;
+                uint8_t  r55;
                 BSP_SD_CS_Low();
-                /* CMD55: APP_CMD 前缀，必须紧贴 ACMD41 发送 */
+                /* CMD55: APP_CMD */
                 SPI2_SendRecv(0x77);
                 SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
                 SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
-                SPI2_SendRecv(0xFF);
-                /* 轮询 CMD55 的 R1（等待卡处理完 APP_CMD 前缀） */
-                {
-                    uint32_t c55 = 0xFFFu;
-                    uint8_t  r55 = 0xFFu;
-                    do { r55 = SPI2_SendRecv(0xFF); } while (r55 == 0xFFu && --c55);
-                }
+                r55 = SPI2_SendRecv(0xFF);             /* CMD55 第6字节: CRC+收R1 */
+                while (r55 == 0xFFu && --c55) { r55 = SPI2_SendRecv(0xFF); }
                 /* ACMD41: arg=0x40000000 (HCS=1) */
                 SPI2_SendRecv(0x69);
                 SPI2_SendRecv(0x40); SPI2_SendRecv(0x00);
                 SPI2_SendRecv(0x00); SPI2_SendRecv(0x00);
-                SPI2_SendRecv(0xFF);
-                do { r1 = SPI2_SendRecv(0xFF); } while (r1 == 0xFFu && --cnt);
+                r1 = SPI2_SendRecv(0xFF);              /* ACMD41 第6字节: CRC+收R1 */
+                while (r1 == 0xFFu && --cnt) { r1 = SPI2_SendRecv(0xFF); }
                 BSP_SD_CS_High();
                 SPI2_SendRecv(0xFF);
             }
@@ -240,10 +237,9 @@ uint8_t SD_SPI_ReadBlock(uint32_t addr, uint8_t *buf)
     SPI2_SendRecv((uint8_t)(addr >> 16));
     SPI2_SendRecv((uint8_t)(addr >> 8));
     SPI2_SendRecv((uint8_t)(addr));
-    SPI2_SendRecv(0xFF);
-
     cnt = 0xFFFu;
-    do { b = SPI2_SendRecv(0xFF); } while (b == 0xFFu && --cnt);
+    b   = SPI2_SendRecv(0xFF);                      /* CRC发送 + 收 R1（高速下第一个响应字节即 R1） */
+    while (b == 0xFFu && --cnt) { b = SPI2_SendRecv(0xFF); }
     if (b != 0x00u) { BSP_SD_CS_High(); CPU_CRITICAL_EXIT(); return 1; }
 
     cnt = 0xFFFu;
