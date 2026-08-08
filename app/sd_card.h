@@ -38,8 +38,14 @@ uint8_t SD_Init(void);
    不做重初始化，只查询内部就绪标志。 */
 uint8_t SD_IsPresent(void);
 
-/* 查询根目录下 APP.bin 是否存在 (f_stat == FR_OK)。
-   返回 1 = 存在，0 = 不存在/未就绪。 */
+/* 扫描根目录，找到版本号最高的 IL_800_XXX_XXX.BIN 文件。
+   成功返回 SD_OK，g_fw_filename / g_fw_ver 被填充。
+   失败返回 SD_ERR_NO_FILE（没找到匹配文件）。
+   版本号编码: fw_ver = major * 256 + sub */
+uint8_t SD_FindLatestFirmware(void);
+
+/* 查询是否已找到固件文件。
+   返回 1 = 已找到，0 = 未找到/未就绪。 */
 uint8_t SD_FileExists(void);
 
 /*---------------------------------------------------------------------------*/

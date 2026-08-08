@@ -67,6 +67,10 @@ static FIL    g_file;           /* 当前打开的文件对象 */
 static uint8_t g_ready = 0u;    /* SD 卡+卷就绪标志 (1=就绪) */
 static uint8_t g_opened = 0u;   /* 文件已打开标志 */
 
+/* 自动选出的固件文件名 + 版本号 (SD_FindLatestFirmware 填充) */
+char     g_fw_filename[32] = {0};   /* IL_800_XXX_XXX.BIN */
+uint16_t g_fw_ver = 0u;             /* major*256 + sub */
+
 /*---------------------------------------------------------------------------*/
 /* SD_Init                                                                    */
 /*---------------------------------------------------------------------------*/
@@ -110,23 +114,117 @@ uint8_t SD_IsPresent(void)
 }
 
 /*---------------------------------------------------------------------------*/
-/* SD_FileExists: f_stat 查询根目录 APP.bin                                   */
+/* SD_FindLatestFirmware: 扫描根目录, 找版本号最高的 IL_800_XXX_XXX.BIN       */
+/*   文件名格式: IL_800_MMM_SSS.BIN  (MMM=主版本3位, SSS=子版本3位)           */
+/*   版本编码: fw_ver = major * 256 + sub                                     */
+/*   比较规则: 先比主版本, 主版本相同再比子版本                               */
 /*---------------------------------------------------------------------------*/
-uint8_t SD_FileExists(void)
+uint8_t SD_FindLatestFirmware(void)
 {
+    DIR     dir;
     FILINFO fno;
+    FRESULT fr;
+    uint16_t best_major = 0u, best_sub = 0u;
+    uint8_t  found = 0u;
 
-    if (!g_ready) {
-        return 0u;
+    if (!g_ready) { return SD_ERR_NO_CARD; }
+
+    fr = f_opendir(&dir, "");
+    if (fr != FR_OK) { return SD_ERR_NO_FILE; }
+
+    while (1u) {
+        fr = f_readdir(&dir, &fno);
+        if (fr != FR_OK || fno.fname[0] == '\0') { break; }
+
+        /* 跳过目录 */
+        if (fno.fattrib & AM_DIR) { continue; }
+
+        /* 检查文件名: 前缀 "IL_800_" + 3位主版本 + "_" + 3位子版本 + ".BIN" */
+        {
+            const char *name = fno.fname;
+            const char *prefix = APP_SD_BIN_PREFIX;   /* "IL_800_" */
+            uint8_t plen = 7u;                         /* strlen("IL_800_") */
+            uint16_t major, sub;
+            uint8_t  i;
+
+            /* 前缀匹配 (大小写不敏感) */
+            for (i = 0u; i < plen; i++) {
+                char c = name[i];
+                if (c >= 'a' && c <= 'z') { c -= 32; }   /* 转大写 */
+                if (c != prefix[i]) { break; }
+            }
+            if (i != plen) { continue; }   /* 前缀不匹配 */
+
+            /* 解析 3 位主版本 */
+            if (name[7] < '0' || name[7] > '9') { continue; }
+            if (name[8] < '0' || name[8] > '9') { continue; }
+            if (name[9] < '0' || name[9] > '9') { continue; }
+            major = (uint16_t)((name[7]-'0')*100u + (name[8]-'0')*10u + (name[9]-'0'));
+
+            /* 分隔符 '_' */
+            if (name[10] != '_') { continue; }
+
+            /* 解析 3 位子版本 */
+            if (name[11] < '0' || name[11] > '9') { continue; }
+            if (name[12] < '0' || name[12] > '9') { continue; }
+            if (name[13] < '0' || name[13] > '9') { continue; }
+            sub = (uint16_t)((name[11]-'0')*100u + (name[12]-'0')*10u + (name[13]-'0'));
+
+            /* 检查后缀 ".BIN" (大小写不敏感) */
+            if (name[14] != '.' ) { continue; }
+            {
+                char ext[4];
+                ext[0] = name[15]; ext[1] = name[16]; ext[2] = name[17];
+                if (ext[0] >= 'a' && ext[0] <= 'z') { ext[0] -= 32; }
+                if (ext[1] >= 'a' && ext[1] <= 'z') { ext[1] -= 32; }
+                if (ext[2] >= 'a' && ext[2] <= 'z') { ext[2] -= 32; }
+                if (ext[0] != 'B' || ext[1] != 'I' || ext[2] != 'N') { continue; }
+            }
+            if (name[18] != '\0') { continue; }   /* 文件名应到此结束 */
+
+            /* 版本比较: 选最高的 */
+            if (!found || major > best_major ||
+                (major == best_major && sub > best_sub)) {
+                best_major = major;
+                best_sub   = sub;
+                found      = 1u;
+                /* 保存文件名 */
+                {
+                    uint8_t n;
+                    for (n = 0u; n < 31u && name[n] != '\0'; n++) {
+                        g_fw_filename[n] = name[n];
+                    }
+                    g_fw_filename[n] = '\0';
+                }
+            }
+        }
     }
-    if (f_stat(APP_SD_BIN_FILENAME, &fno) == FR_OK) {
-        return 1u;
+
+    f_closedir(&dir);
+
+    if (!found) {
+        g_fw_filename[0] = '\0';
+        g_fw_ver = 0u;
+        return SD_ERR_NO_FILE;
     }
-    return 0u;
+
+    g_fw_ver = (uint16_t)(best_major * 256u + best_sub);
+    BSP_USART2_Printf("[SD] Found firmware: %s (ver=%lu.%lu, fw_ver=0x%04X)\r\n",
+                      g_fw_filename, (unsigned long)best_major,
+                      (unsigned long)best_sub, (unsigned)g_fw_ver);
+    return SD_OK;
 }
 
 /*---------------------------------------------------------------------------*/
-/* SD_FileOpen: 以只读方式打开 APP.bin                                        */
+/* SD_FileExists: 检查是否已找到固件文件                                      */
+/*---------------------------------------------------------------------------*/
+uint8_t SD_FileExists(void)
+{
+    return (g_fw_filename[0] != '\0') ? 1u : 0u;
+}
+
+/*---------------------------------------------------------------------------*/
+/* SD_FileOpen: 打开自动选出的固件文件                                        */
 /*---------------------------------------------------------------------------*/
 uint8_t SD_FileOpen(void)
 {
@@ -140,7 +238,7 @@ uint8_t SD_FileOpen(void)
         return SD_OK;
     }
 
-    fr = f_open(&g_file, APP_SD_BIN_FILENAME, FA_READ | FA_OPEN_EXISTING);
+    fr = f_open(&g_file, g_fw_filename, FA_READ | FA_OPEN_EXISTING);
     if (fr != FR_OK) {
         g_opened = 0u;
         if (fr == FR_NO_FILE || fr == FR_NO_PATH) {

@@ -329,7 +329,18 @@ void AppTask_Download(void *p_arg)
             src = SysState_GetDataSource();
 
             if (src == DATA_SRC_SD_CARD) {
-                /* ---- SD 卡源 ---- */
+                /* ---- SD 卡源: 扫描最新固件 ---- */
+                if (SD_FindLatestFirmware() != SD_OK) {
+                    BSP_USART2_Printf("[DWN] No firmware found on SD\r\n");
+                    Buzzer_Request(BUZZER_CMD_ERROR);
+                    SysState_SetTransferLock(0u);
+                    state = DL_STATE_IDLE;
+                    break;
+                }
+                /* 版本号从文件名解析 (g_fw_ver)，不再读文件头 */
+                fw_ver = g_fw_ver;
+
+                /* 打开选中的文件，读全部内容算 CRC */
                 if (SD_FileOpen() != SD_OK) {
                     Buzzer_Request(BUZZER_CMD_ERROR);
                     SysState_SetTransferLock(0u);
@@ -338,29 +349,6 @@ void AppTask_Download(void *p_arg)
                 }
                 fw_total_size = SD_FileGetSize();
 
-                /* fw_ver = 文件前 2 字节（小端） */
-                {
-                    uint8_t  ver_buf[2] = {0u, 0u};
-                    uint16_t br_ver = 0u;
-                    if (SD_FileRead(ver_buf, 2u, &br_ver) != SD_OK || br_ver != 2u) {
-                        Buzzer_Request(BUZZER_CMD_ERROR);
-                        SD_FileClose();
-                        SysState_SetTransferLock(0u);
-                        state = DL_STATE_IDLE;
-                        break;
-                    }
-                    fw_ver = (uint16_t)((uint16_t)ver_buf[0]
-                              | ((uint16_t)ver_buf[1] << 8));
-                }
-
-                /* 关闭后重开，从头计算整包 CRC32 */
-                SD_FileClose();
-                if (SD_FileOpen() != SD_OK) {
-                    Buzzer_Request(BUZZER_CMD_ERROR);
-                    SysState_SetTransferLock(0u);
-                    state = DL_STATE_IDLE;
-                    break;
-                }
                 {
                     uint32_t remaining = fw_total_size;
                     CRC32_Reset();
@@ -371,7 +359,7 @@ void AppTask_Download(void *p_arg)
                         uint16_t br = 0u;
                         if (SD_FileRead(g_seg_buf, (uint16_t)chunk, &br) != SD_OK
                             || br == 0u) {
-                            break;   /* 读错误 / 提前 EOF：CRC 基于已读部分 */
+                            break;
                         }
                         CRC32_Update(g_seg_buf, br);
                         remaining -= (uint32_t)br;
