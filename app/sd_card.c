@@ -74,8 +74,7 @@ uint8_t SD_Init(void)
 {
     FRESULT fr;
 
-    /* 1) SPI2 + SD 卡 SPI 模式初始化 */
-    BSP_SPI2_Init();
+    /* 1) SD 卡 SPI 模式初始化（BSP_SPI2_Init 已在 BSP_Init 中调用） */
     if (SD_SPI_Init() != 0u) {
         g_ready = 0u;
         return SD_ERR_NO_CARD;

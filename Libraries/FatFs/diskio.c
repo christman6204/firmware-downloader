@@ -44,8 +44,9 @@ DSTATUS disk_initialize (BYTE pdrv)
         return STA_NOINIT;          /* 本工程只支持 1 卷 */
     }
 
-    /* SPI2 + SD 卡 SPI 模式初始化 */
-    BSP_SPI2_Init();
+    /* SD 卡已在 SD_Init 中完成初始化；BSP_SPI2_Init 会修改 CR1
+       波特率位（SPE=1 时修改违反 STM32 硬件规范），此处不再重调。
+       单次 SD_SPI_Init 足够确认卡处于 SPI 就绪状态。 */
     if (SD_SPI_Init() == 0u) {
         g_sd_stat &= ~STA_NOINIT;   /* 清除未初始化标志 */
     } else {
