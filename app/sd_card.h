@@ -12,6 +12,10 @@
 
 #include <stdint.h>
 
+/* 自动选出的固件文件名 + 版本号 (SD_FindLatestFirmware 填充) */
+extern char     g_fw_filename[32];   /* IL_800_XXX_XXX.BIN */
+extern uint16_t g_fw_ver;             /* major*256 + sub */
+
 /* 错误码：上层（下载状态机）按非零即失败处理 */
 #define SD_OK              0u
 #define SD_ERR_NO_CARD     1u   /* SD 卡未初始化/未插卡 */
