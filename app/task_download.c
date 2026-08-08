@@ -137,15 +137,15 @@ static uint8_t DL_SendAndWait(const uint8_t *frame, uint16_t frame_len,
     const uint8_t *rx_data;
     uint8_t      ret;
 
-    /* ---- 调试: dump 发送帧 (前 16 字节) ---- */
+    /* ---- 调试: dump 发送帧 (全部字节, 单次打印) ---- */
     {
-        uint16_t n = (frame_len < 16u) ? frame_len : 16u;
-        BSP_USART2_Printf("[DWN] TX %uB:", (unsigned)frame_len);
-        for (uint16_t i = 0u; i < n; i++) {
-            BSP_USART2_Printf(" %02X", frame[i]);
+        char hexbuf[FRAME_MAX_TOTAL * 3 + 24];
+        int pos = 0;
+        pos += snprintf(hexbuf + pos, sizeof(hexbuf) - pos, "[DWN] TX %uB:", (unsigned)frame_len);
+        for (uint16_t i = 0u; i < frame_len && pos < (int)sizeof(hexbuf) - 4; i++) {
+            pos += snprintf(hexbuf + pos, sizeof(hexbuf) - pos, " %02X", frame[i]);
         }
-        if (frame_len > 16u) { BSP_USART2_Printf("..."); }
-        BSP_USART2_Printf("\r\n");
+        BSP_USART2_Printf("%s\r\n", hexbuf);
     }
 
     BSP_USART1_RecvStart();                 /* 复位 RX 缓冲，使能 RXNE       */
@@ -166,17 +166,13 @@ static uint8_t DL_SendAndWait(const uint8_t *frame, uint16_t frame_len,
     rx_len = BSP_USART1_GetRecvLen();
     rx_data = BSP_USART1_GetRecvBuf();
 
-    /* ---- 调试: dump 接收帧 (前 24 字节, 单次打印) ---- */
+    /* ---- 调试: dump 接收帧 (全部字节, 单次打印) ---- */
     {
-        char hexbuf[24 * 3 + 20];
-        uint16_t n = (rx_len < 24u) ? rx_len : 24u;
+        char hexbuf[USART1_RX_BUF_SIZE * 3 + 24];
         int pos = 0;
         pos += snprintf(hexbuf + pos, sizeof(hexbuf) - pos, "[DWN] RX %uB:", (unsigned)rx_len);
-        for (uint16_t i = 0u; i < n && pos < (int)sizeof(hexbuf) - 4; i++) {
+        for (uint16_t i = 0u; i < rx_len && pos < (int)sizeof(hexbuf) - 4; i++) {
             pos += snprintf(hexbuf + pos, sizeof(hexbuf) - pos, " %02X", rx_data[i]);
-        }
-        if (rx_len > 24u && pos < (int)sizeof(hexbuf) - 4) {
-            pos += snprintf(hexbuf + pos, sizeof(hexbuf) - pos, " ...");
         }
         BSP_USART2_Printf("%s\r\n", hexbuf);
     }
