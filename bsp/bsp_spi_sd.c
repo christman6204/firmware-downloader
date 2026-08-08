@@ -10,7 +10,7 @@
  * ===== SPI 配置（与测试工程完全一致） =====
  *   - SPI2: SCK=PB13, MISO=PB14, MOSI=PB15, CS=PD8
  *   - Mode 3 (CPOL=High, CPHA=2Edge)
- *   - 18MHz (Prescaler_2)，全流程统一速率（与测试工程一致）
+ *   - 速率: 初始 140kHz (Prescaler_256, ≤400kHz SD 规范) -> 就绪后 18MHz (Prescaler_2)
  *   - 8-bit, MSB first, NSS 软件管理
  *
  * ===== 时序要点 =====
@@ -80,17 +80,27 @@ void BSP_SPI2_Init(void)
     GPIO_InitStruct.GPIO_Mode  = GPIO_Mode_IN_FLOATING;
     GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-    /* SPI Mode 3 + 18MHz（与测试工程完全一致，全流程统一速率） */
+    /* SPI Mode 3, 初始 140kHz（Prescaler_256，SD 规范要求初始化期 ≤400kHz） */
     SPI_InitStruct.SPI_Direction         = SPI_Direction_2Lines_FullDuplex;
     SPI_InitStruct.SPI_Mode              = SPI_Mode_Master;
     SPI_InitStruct.SPI_DataSize          = SPI_DataSize_8b;
     SPI_InitStruct.SPI_CPOL              = SPI_CPOL_High;
     SPI_InitStruct.SPI_CPHA              = SPI_CPHA_2Edge;
     SPI_InitStruct.SPI_NSS               = SPI_NSS_Soft;
-    SPI_InitStruct.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2;       /* 18MHz */
+    SPI_InitStruct.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_256;      /* 140kHz (≤400kHz SD spec) */
     SPI_InitStruct.SPI_FirstBit          = SPI_FirstBit_MSB;
     SPI_InitStruct.SPI_CRCPolynomial     = 7;
     SPI_Init(SPI2, &SPI_InitStruct);
+    SPI_Cmd(SPI2, ENABLE);
+}
+
+/* SD 初始化完成后提速至 18MHz (Prescaler_2) 用于正常读写。
+   STM32 规范：修改 CR1.BR 前必须先 SPI_Cmd(DISABLE)。 */
+void SD_SPI_SetHighSpeed(void)
+{
+    SPI_Cmd(SPI2, DISABLE);
+    SPI2->CR1 &= ~SPI_CR1_BR;
+    SPI2->CR1 |= SPI_BaudRatePrescaler_2;
     SPI_Cmd(SPI2, ENABLE);
 }
 
@@ -194,7 +204,9 @@ uint8_t SD_SPI_Init(void)
     BSP_SD_CS_High(); SPI2_SendRecv(0xFF);
     CPU_CRITICAL_EXIT();
 
-    BSP_USART2_Printf("[SD] Init OK\r\n");
+    /* 初始化完成，提速至 18MHz 用于后续读写（SD 规范：初始化期 ≤400kHz，就绪后可提速） */
+    SD_SPI_SetHighSpeed();
+    BSP_USART2_Printf("[SD] Init OK (SPI -> 18MHz)\r\n");
     return 0;
 }
 

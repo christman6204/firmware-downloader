@@ -3606,9 +3606,9 @@
       <ActiveTab>0</ActiveTab>
       <Doc>
         <Name>..\app\app.c</Name>
-        <ColumnNumber>62</ColumnNumber>
+        <ColumnNumber>0</ColumnNumber>
         <TopLine>57</TopLine>
-        <CurrentLine>75</CurrentLine>
+        <CurrentLine>67</CurrentLine>
         <Folding>1</Folding>
         <ContractedFolders></ContractedFolders>
         <PaneID>0</PaneID>
