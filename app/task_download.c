@@ -112,6 +112,7 @@ typedef enum {
 static uint8_t g_tx_buf[FRAME_MAX_TOTAL];
 static uint8_t g_reply_content[FRAME_MAX_CMD_LEN];
 static uint8_t g_seg_buf[APP_SEGMENT_SIZE];
+static uint32_t g_send_tick = 0u;   /* 发送时刻 (OS tick), 用于测回复耗时 */
 
 
 /*---------------------------------------------------------------------------*/
@@ -156,6 +157,10 @@ static uint8_t DL_SendAndWait(const uint8_t *frame, uint16_t frame_len,
     }
 
     BSP_USART1_RecvStart();                 /* 复位 RX 缓冲，使能 RXNE       */
+    {
+        OS_ERR t_err;
+        g_send_tick = OSTimeGet(&t_err);    /* 记录发送时刻 */
+    }
     BSP_USART1_Send(frame, frame_len);      /* 阻塞发送整帧                  */
 
     /* 等待 RX 完成信号量，超时 = timeout_ticks (默认 1s, 完成命令 8s) */
@@ -173,6 +178,14 @@ static uint8_t DL_SendAndWait(const uint8_t *frame, uint16_t frame_len,
 
     rx_len = BSP_USART1_GetRecvLen();
     rx_data = BSP_USART1_GetRecvBuf();
+
+    /* 记录回复到达时刻，计算实际耗时 */
+    {
+        OS_ERR t_err;
+        uint32_t now = OSTimeGet(&t_err);
+        uint32_t elapsed_ms = (now - g_send_tick) * 2u;   /* 500Hz tick = 2ms */
+        BSP_USART2_Printf("[DWN] Reply latency: %lu ms\r\n", (unsigned long)elapsed_ms);
+    }
 
     /* ---- 调试: dump 接收帧 (前 128 字节, 单次打印, 栈占用 408B 安全) ---- */
     {
