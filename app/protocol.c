@@ -176,6 +176,7 @@ uint8_t Proto_ParseFrame(const uint8_t *raw, uint16_t raw_len,
     uint16_t length;
     uint16_t cl;
     uint16_t i;
+    uint16_t off;       /* 帧头在 raw 中的偏移 */
     uint16_t tail_off;
     uint8_t  cs;
 
@@ -189,14 +190,21 @@ uint8_t Proto_ParseFrame(const uint8_t *raw, uint16_t raw_len,
         return PROTO_ERR_TOO_SHORT;
     }
 
-    /* Header */
-    if (raw[0] != FRAME_HEADER0 || raw[1] != FRAME_HEADER1 ||
-        raw[2] != FRAME_HEADER2 || raw[3] != FRAME_HEADER3) {
+    /* 搜索帧头 FE EF ED FC，容忍目标设备发送的前导字节 */
+    off = 0u;
+    while (off + 4u <= raw_len) {
+        if (raw[off] == FRAME_HEADER0 && raw[off + 1u] == FRAME_HEADER1 &&
+            raw[off + 2u] == FRAME_HEADER2 && raw[off + 3u] == FRAME_HEADER3) {
+            break;
+        }
+        off++;
+    }
+    if (off + 4u > raw_len) {
         return PROTO_ERR_HEADER;
     }
 
     /* Length (BE) = 报文总长 - 8 = 12 + cmd_len */
-    length = (uint16_t)(((uint16_t)raw[6] << 8) | raw[7]);
+    length = (uint16_t)(((uint16_t)raw[off + 6u] << 8) | raw[off + 7u]);
     if (length < 12u) {
         return PROTO_ERR_LENGTH;
     }
@@ -205,27 +213,27 @@ uint8_t Proto_ParseFrame(const uint8_t *raw, uint16_t raw_len,
         return PROTO_ERR_LENGTH;
     }
 
-    /* 总长度检查：raw 至少能容纳完整帧 */
-    if (raw_len < (uint16_t)(FRAME_FIXED_LEN + cl + FRAME_TAIL_LEN)) {
+    /* 总长度检查：从帧头偏移起，raw 至少能容纳完整帧 */
+    if (off + (uint16_t)(FRAME_FIXED_LEN + cl + FRAME_TAIL_LEN) > raw_len) {
         return PROTO_ERR_LENGTH;
     }
 
     /* Tail */
-    tail_off = (uint16_t)(FRAME_FIXED_LEN + cl);
+    tail_off = (uint16_t)(off + FRAME_FIXED_LEN + cl);
     if (raw[tail_off + 0u] != FRAME_TAIL0 || raw[tail_off + 1u] != FRAME_TAIL1 ||
         raw[tail_off + 2u] != FRAME_TAIL2 || raw[tail_off + 3u] != FRAME_TAIL3) {
         return PROTO_ERR_TAIL;
     }
 
     /* Checksum: 偏移 5..15+cl (11+cl 字节) 求和取反，与 raw[4] 比较 */
-    cs = Proto_Checksum(&raw[5], (uint16_t)(11u + cl));
-    if (cs != raw[4]) {
+    cs = Proto_Checksum(&raw[off + 5u], (uint16_t)(11u + cl));
+    if (cs != raw[off + 4u]) {
         return PROTO_ERR_CHECKSUM;
     }
 
     /* 提取 cmd */
     for (i = 0u; i < cl; i++) {
-        cmd[i] = raw[FRAME_FIXED_LEN + i];
+        cmd[i] = raw[off + FRAME_FIXED_LEN + i];
     }
     *cmd_len = cl;
 

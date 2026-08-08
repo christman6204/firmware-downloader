@@ -144,18 +144,23 @@ def proto_build_frame(cmd, cmd_len=None):
 # Proto_ParseFrame 移植
 # ---------------------------------------------------------------------------
 def proto_parse_frame(raw):
-    """返回 (err_code, cmd_bytes, cmd_len)。"""
+    """返回 (err_code, cmd_bytes, cmd_len)。容忍前导字节（搜索帧头）。"""
     raw_len = len(raw)
 
     if raw_len < FRAME_FIXED_LEN + FRAME_TAIL_LEN:
         return (PROTO_ERR_TOO_SHORT, b'', 0)
 
-    # Header
-    if raw[0:4] != FRAME_HEADER:
+    # 搜索帧头 FE EF ED FC，容忍前导字节
+    off = 0
+    while off + 4 <= raw_len:
+        if raw[off:off + 4] == FRAME_HEADER:
+            break
+        off += 1
+    if off + 4 > raw_len:
         return (PROTO_ERR_HEADER, b'', 0)
 
     # Length (BE)
-    length = (raw[6] << 8) | raw[7]
+    length = (raw[off + 6] << 8) | raw[off + 7]
     if length < 12:
         return (PROTO_ERR_LENGTH, b'', 0)
     cl = length - 12
@@ -163,21 +168,21 @@ def proto_parse_frame(raw):
         return (PROTO_ERR_LENGTH, b'', 0)
 
     # 总长度
-    if raw_len < FRAME_FIXED_LEN + cl + FRAME_TAIL_LEN:
+    if off + FRAME_FIXED_LEN + cl + FRAME_TAIL_LEN > raw_len:
         return (PROTO_ERR_LENGTH, b'', 0)
 
     # Tail
-    tail_off = FRAME_FIXED_LEN + cl
+    tail_off = off + FRAME_FIXED_LEN + cl
     if raw[tail_off:tail_off + 4] != FRAME_TAIL:
         return (PROTO_ERR_TAIL, b'', 0)
 
     # Checksum
-    cs = proto_checksum(raw[5:5 + 11 + cl])
-    if cs != raw[4]:
+    cs = proto_checksum(raw[off + 5:off + 5 + 11 + cl])
+    if cs != raw[off + 4]:
         return (PROTO_ERR_CHECKSUM, b'', 0)
 
     # Cmd
-    cmd = bytes(raw[16:16 + cl])
+    cmd = bytes(raw[off + 16:off + 16 + cl])
     return (PROTO_OK, cmd, cl)
 
 
@@ -381,6 +386,14 @@ def main():
     assert cmd[12:14] == _u16_le(APP_VERIFY_CODE), "T9: verify LE %s" % cmd[12:14].hex()
     assert cmd[12] == 0x16 and cmd[13] == 0xE6, "T9: verify LE %s" % cmd[12:14].hex()
     print("Test 9 PASSED: 小端字段 (fw_ver=0xBEEF, fw_size/fw_crc/verify_code LE)")
+
+    # ---- Test 10: 容忍前导字节 (目标回复前带一个 FE) ----
+    frame, _ = proto_build_start_cmd(0, 0x0102, 307200, 0xAABBCCDD)
+    padded = bytes([0xFE]) + frame          # 前面加一个 FE 前导字节
+    ret, cmd_out, cl = proto_parse_frame(padded)
+    assert ret == 0, "T10: parse with leading byte err=%d" % ret
+    assert cl == 14, "T10: cmd_len %d != 14" % cl
+    print("Test 10 PASSED: 前导字节容忍 (FE + frame)")
 
     print("\nAll protocol tests PASSED")
 
