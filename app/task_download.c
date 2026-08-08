@@ -166,15 +166,19 @@ static uint8_t DL_SendAndWait(const uint8_t *frame, uint16_t frame_len,
     rx_len = BSP_USART1_GetRecvLen();
     rx_data = BSP_USART1_GetRecvBuf();
 
-    /* ---- 调试: dump 接收帧 (前 24 字节) ---- */
+    /* ---- 调试: dump 接收帧 (前 24 字节, 单次打印) ---- */
     {
+        char hexbuf[24 * 3 + 20];
         uint16_t n = (rx_len < 24u) ? rx_len : 24u;
-        BSP_USART2_Printf("[DWN] RX %uB:", (unsigned)rx_len);
-        for (uint16_t i = 0u; i < n; i++) {
-            BSP_USART2_Printf(" %02X", rx_data[i]);
+        int pos = 0;
+        pos += snprintf(hexbuf + pos, sizeof(hexbuf) - pos, "[DWN] RX %uB:", (unsigned)rx_len);
+        for (uint16_t i = 0u; i < n && pos < (int)sizeof(hexbuf) - 4; i++) {
+            pos += snprintf(hexbuf + pos, sizeof(hexbuf) - pos, " %02X", rx_data[i]);
         }
-        if (rx_len > 24u) { BSP_USART2_Printf("..."); }
-        BSP_USART2_Printf("\r\n");
+        if (rx_len > 24u && pos < (int)sizeof(hexbuf) - 4) {
+            pos += snprintf(hexbuf + pos, sizeof(hexbuf) - pos, " ...");
+        }
+        BSP_USART2_Printf("%s\r\n", hexbuf);
     }
 
     /* Proto_ParseReply 借用 content 作为 in-place cmd 解析缓冲 */
