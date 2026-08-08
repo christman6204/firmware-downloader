@@ -137,6 +137,17 @@ static uint8_t DL_SendAndWait(const uint8_t *frame, uint16_t frame_len,
     const uint8_t *rx_data;
     uint8_t      ret;
 
+    /* ---- 调试: dump 发送帧 (前 16 字节) ---- */
+    {
+        uint16_t n = (frame_len < 16u) ? frame_len : 16u;
+        BSP_USART2_Printf("[DWN] TX %uB:", (unsigned)frame_len);
+        for (uint16_t i = 0u; i < n; i++) {
+            BSP_USART2_Printf(" %02X", frame[i]);
+        }
+        if (frame_len > 16u) { BSP_USART2_Printf("..."); }
+        BSP_USART2_Printf("\r\n");
+    }
+
     BSP_USART1_RecvStart();                 /* 复位 RX 缓冲，使能 RXNE       */
     BSP_USART1_Send(frame, frame_len);      /* 阻塞发送整帧                  */
 
@@ -147,6 +158,7 @@ static uint8_t DL_SendAndWait(const uint8_t *frame, uint16_t frame_len,
               (CPU_TS *)0,
               &err);
     if (err == OS_ERR_TIMEOUT) {
+        BSP_USART2_Printf("[DWN] RX TIMEOUT (1s no reply)\r\n");
         return 0xFFu;                        /* 命令超时                      */
     }
     /* err == OS_ERR_NONE 或其它（如已被删除） -- 尽力解析已收到的字节 */
@@ -154,8 +166,23 @@ static uint8_t DL_SendAndWait(const uint8_t *frame, uint16_t frame_len,
     rx_len = BSP_USART1_GetRecvLen();
     rx_data = BSP_USART1_GetRecvBuf();
 
+    /* ---- 调试: dump 接收帧 (前 24 字节) ---- */
+    {
+        uint16_t n = (rx_len < 24u) ? rx_len : 24u;
+        BSP_USART2_Printf("[DWN] RX %uB:", (unsigned)rx_len);
+        for (uint16_t i = 0u; i < n; i++) {
+            BSP_USART2_Printf(" %02X", rx_data[i]);
+        }
+        if (rx_len > 24u) { BSP_USART2_Printf("..."); }
+        BSP_USART2_Printf("\r\n");
+    }
+
     /* Proto_ParseReply 借用 content 作为 in-place cmd 解析缓冲 */
     ret = Proto_ParseReply(rx_data, rx_len, &rtype, &rstatus, content, &rclen);
+
+    if (ret != PROTO_OK) {
+        BSP_USART2_Printf("[DWN] Parse FAIL ret=%u\r\n", (unsigned)ret);
+    }
 
     if (reply_type)   *reply_type   = rtype;
     if (status)       *status       = rstatus;
@@ -252,6 +279,7 @@ void AppTask_Download(void *p_arg)
                 break;
             }
             evt = (uint32_t)(CPU_ADDR)p_msg;
+            BSP_USART2_Printf("[DWN] Key event: %lu\r\n", (unsigned long)evt);
 
             if (evt == KEY_EVT_B1_LONG) {
                 /* 切换数据源：SD 卡 <-> MCU Flash */
@@ -259,9 +287,13 @@ void AppTask_Download(void *p_arg)
                 DataSource_t next = (cur == DATA_SRC_SD_CARD)
                                     ? DATA_SRC_MCU_FLASH
                                     : DATA_SRC_SD_CARD;
+                BSP_USART2_Printf("[DWN] Switch source: %s -> %s\r\n",
+                                  (cur == DATA_SRC_SD_CARD) ? "SD" : "FLASH",
+                                  (next == DATA_SRC_SD_CARD) ? "SD" : "FLASH");
                 if (next == DATA_SRC_SD_CARD) {
                     if (!SD_IsPresent()) {
                         /* SD 卡不在：报错并保持当前数据源 */
+                        BSP_USART2_Printf("[DWN] SD not present, abort switch\r\n");
                         Buzzer_Request(BUZZER_CMD_ERROR);
                         break;
                     }
@@ -272,10 +304,14 @@ void AppTask_Download(void *p_arg)
                 /* 切换固件类型：普通 <-> 工厂 */
                 FwType_t cur = SysState_GetFwType();
                 FwType_t next = (cur == FW_NORMAL) ? FW_FACTORY : FW_NORMAL;
+                BSP_USART2_Printf("[DWN] Switch fw type: %s -> %s\r\n",
+                                  (cur == FW_NORMAL) ? "Normal" : "Factory",
+                                  (next == FW_NORMAL) ? "Normal" : "Factory");
                 SysState_SetFwType(next);
             }
             else if (evt == KEY_EVT_B2_SHORT) {
                 /* 启动下载：短鸣反馈 -> 加锁 -> 进入 SD_CHECK */
+                BSP_USART2_Printf("[DWN] === Download START ===\r\n");
                 Buzzer_Request(BUZZER_CMD_SHORT);
                 SysState_SetTransferLock(1u);
                 start_tick = OSTimeGet(&err);

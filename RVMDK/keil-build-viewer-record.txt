@@ -1,9 +1,9 @@
       Code (inc. data)   RO Data    RW Data    ZI Data      Debug   Object Name
-       528          0          0          0       8032          0   app.o
+       536          0          0          0       8032          0   app.o
        156          0          0          0          0          0   bsp.o
        360          0          0          0          0          0   bsp_gpio.o
          8          0          0          0          0          0   bsp_iwdg.o
-      1512          0          0          1          0          0   bsp_spi_sd.o
+      2038          0          0          1          0          0   bsp_spi_sd.o
        624          0          0          3        552          0   bsp_usart.o
          0          0          0          0          0          0   core_cm3.o
         52          0          0          0          0          0   cpu_a.o
@@ -33,7 +33,7 @@
        812          0          0          0          0          0   os_tmr.o
          0          0          0        200       1396          0   os_var.o
       1130          0          0          2          0          0   protocol.o
-       456          0          0          2       1096          0   sd_card.o
+      1672          0         71          2       5704          0   sd_card.o
         36          0        304          0       1024          0   startup_stm32f10x_hd.o
        448          0          0          0          0          0   stm32f10x_gpio.o
         38          0          0          0          0          0   stm32f10x_it.o
@@ -52,8 +52,8 @@ Memory Map of the image
 
 	Load Region LR_VECTOR 
 
-		Execution Region ER_VECTOR (Exec base: 0x08000000, Size: 0x0000B028, Max: 0x00020000, END)
+		Execution Region ER_VECTOR (Exec base: 0x08000000, Size: 0x0000B748, Max: 0x00020000, END)
 
-		Execution Region RW_IRAM1 (Exec base: 0x20000000, Size: 0x000065F0, Max: 0x00010000, END)
+		Execution Region RW_IRAM1 (Exec base: 0x20000000, Size: 0x000077F0, Max: 0x00010000, END)
 
 Image component sizes
