@@ -191,6 +191,11 @@ uint8_t Proto_ParseFrame(const uint8_t *raw, uint16_t raw_len,
     }
 
     /* 搜索帧头 FE EF ED FC，容忍目标设备发送的前导字节 */
+    /* 解析原则（按协议约定）：
+       1) 必须有帧头 FE EF ED FC 和帧尾 FD EC F8 F1
+       2) 帧头帧尾之间数据长度须符合报文中的长度字段
+       3) 校验和须正确
+       4) 不对通讯ID/设备ID/主机ID 做值判断（目标回复的 ID 可能与约定不同） */
     off = 0u;
     while (off + 4u <= raw_len) {
         if (raw[off] == FRAME_HEADER0 && raw[off + 1u] == FRAME_HEADER1 &&
