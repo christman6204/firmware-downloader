@@ -70,9 +70,9 @@ void BSP_USART_Init(void)
     USART_InitStruct.USART_Mode                 = USART_Mode_Rx | USART_Mode_Tx;
     USART_Init(USART1, &USART_InitStruct);
 
-    /* 使能接收中断 + 空闲中断 */
+    /* 仅使能接收中断。帧结束判定改用 TIM3 超时 + 字节数阈值，
+       不用 IDLE 中断（否则线路空闲时 IDLE 标志常置位，ISR 死循环）。 */
     USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
-    USART_ITConfig(USART1, USART_IT_IDLE, ENABLE);
     USART_Cmd(USART1, ENABLE);
 
     NVIC_InitStruct.NVIC_IRQChannel                   = USART1_IRQn;
@@ -177,6 +177,12 @@ void BSP_USART1_IRQHandler(void)
             USART_ITConfig(USART1, USART_IT_RXNE, DISABLE);
             OSSemPost(&g_usart1_rx_sem, OS_OPT_POST_1, &err);
         }
+    }
+
+    /* 溢出错误 (ORE): 读 SR 再读 DR 清除，防止 RXNE 挂死 */
+    if (USART_GetFlagStatus(USART1, USART_FLAG_ORE) != RESET) {
+        (void)USART1->SR;
+        (void)USART1->DR;
     }
 }
 
