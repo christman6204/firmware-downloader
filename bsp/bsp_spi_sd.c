@@ -24,7 +24,8 @@
  *   │   重试 1000 次，等待 R1=0x00（就绪，退出 Idle 态）
  *   │   设计要点：CMD8 失败（v1.x卡）时仍执行 ACMD41，HCS位被忽略
  *   │
- *   └─ 成功 → 全程 18MHz (Prescaler_2)，直接使用（与此硬件一致）
+ *   └─ 成功 → SD_SPI_SetHighSpeed() 提速至 18MHz (Prescaler_2)
+ *             初始化期是 Prescaler_256 ≈ 140kHz (< 400kHz 规范要求)
  *
  * ===== CMD17 读块协议 =====
  *
@@ -47,7 +48,7 @@
  *   - 数据宽度: 8-bit
  *   - 位序: MSB first
  *   - NSS: 软件管理（CS 由 GPIO 手动控制，BSP_SD_CS_Low/High）
- *   - 速度: 18MHz (Prescaler_2)
+ *   - 速度: 初始 ~140kHz (256 分频) → 就绪后 18MHz (2 分频)
  *
  * ===== 超时规范 =====
  *
@@ -86,17 +87,26 @@ void BSP_SPI2_Init(void)
     GPIO_InitStruct.GPIO_Mode  = GPIO_Mode_IN_FLOATING;
     GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-    /* SPI Mode 3 + 18MHz（与测试工程完全一致） */
+    /* SPI Mode 3，初始 140kHz（SD 规范要求 ≤400kHz） */
     SPI_InitStruct.SPI_Direction         = SPI_Direction_2Lines_FullDuplex;
     SPI_InitStruct.SPI_Mode              = SPI_Mode_Master;
     SPI_InitStruct.SPI_DataSize          = SPI_DataSize_8b;
     SPI_InitStruct.SPI_CPOL              = SPI_CPOL_High;
     SPI_InitStruct.SPI_CPHA              = SPI_CPHA_2Edge;
     SPI_InitStruct.SPI_NSS               = SPI_NSS_Soft;
-    SPI_InitStruct.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2;       /* 18MHz */
+    SPI_InitStruct.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_256;     /* ~140kHz (<400kHz SD spec) */
     SPI_InitStruct.SPI_FirstBit          = SPI_FirstBit_MSB;
     SPI_InitStruct.SPI_CRCPolynomial     = 7;
     SPI_Init(SPI2, &SPI_InitStruct);
+    SPI_Cmd(SPI2, ENABLE);
+}
+
+/* SD 初始化完成后将 SPI2 提速至 18MHz (Prescaler_2) */
+void SD_SPI_SetHighSpeed(void)
+{
+    SPI_Cmd(SPI2, DISABLE);
+    SPI2->CR1 &= ~SPI_CR1_BR;
+    SPI2->CR1 |= SPI_BaudRatePrescaler_2;
     SPI_Cmd(SPI2, ENABLE);
 }
 
@@ -220,6 +230,7 @@ uint8_t SD_SPI_Init(void)
         }
     }
 
+    SD_SPI_SetHighSpeed();                               /* 140kHz → 18MHz */
     BSP_USART2_Printf("[SD] Init OK\r\n");
     return 0;
 }
