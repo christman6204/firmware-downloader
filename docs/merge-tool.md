@@ -140,15 +140,36 @@ tool/hex_utils.py        依赖的 HEX 解析库（本仓库自带）
 
 ## 9. 验证方法
 
+### 自动校验（推荐）
+
+合并完成后，`merge_tool.py` 自动对输出镜像执行严格校验（`_verify_output`）：
+
+| 校验项 | 通过条件 |
+|--------|---------|
+| 文件大小 | == 0x20000 + APP 大小 |
+| BT 数据 | offset 0..len(BT) 与源 HEX 逐字节一致 |
+| APP 数据 | offset 0x20000.. 与源 BIN 逐字节一致 |
+| 间隙填充 | BT 末..0x20000 之间全部 == 0xFF |
+| 无重叠 | BT 数据未超过 0x20000 |
+
+任一失败 → 日志报错 `校验失败`。
+
+### 手动验证（可选）
+
 1. 选择 `bootloader.hex`（BT HEX）和 APP BIN
 2. 点击合并
-3. 检查输出 `IL800_FD.BIN`：
-   - 大小 = 0x20000 + APP 大小
-   - offset 0x00000 = BT 数据首字节
-   - offset 0x20000 之前 = 0xFF（间隙，前提是 BT 数据不足 0x20000）
-   - offset 0x20000 = APP 数据首字节
-
-> 注：`offset 0x10000 = 0xFF` 仅在 BT 数据 < 64KB 时成立。若 BT 数据在 64KB~128KB 之间，0x10000 处是 BT 数据。
+3. 用 Python 验证：
+```python
+import hex_utils
+_, bt = hex_utils.hex_to_binary('bootloader.hex')
+app = open('app.bin','rb').read()
+out = open('IL800_FD.BIN','rb').read()
+assert len(out) == 0x20000 + len(app)
+assert out[:len(bt)] == bt              # BT 数据
+assert out[0x20000:0x20000+len(app)] == app  # APP 数据
+assert all(b == 0xFF for b in out[len(bt):0x20000])  # 间隙全 0xFF
+print('OK')
+```
 
 ---
 
