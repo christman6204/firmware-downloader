@@ -68,8 +68,8 @@
  *     超时返回 0xFF，解析失败返回 0xFE，成功返回 status 字段。
  *   - g_reply_content 必须为 FRAME_MAX_CMD_LEN (300) 字节：Proto_ParseReply
  *     会将其作为 in-place 临时缓冲复用（Task 5 review note）。
- *   - 段大小 APP_SEGMENT_SIZE(256)；MCU Flash 源固定 300KB。
- *   - TX LED (PA12) 在每个数据段发送时翻转一次（BSP_LED_Toggle）。
+ *   - 段大小 APP_SEGMENT_SIZE(256)；MCU Flash 源按 0x08020002 大小字段传输。
+ *   - TX/RX 活动 LED 由 bsp_usart 底层控制（发送/接收每字节触发, 亮/灭各≥100ms）。
  *
  * 字节序：fw_ver / fw_size / fw_crc / seg_size / seg_crc / offset 均小端；
  *         SD 卡前 2 字节 = fw_ver（小端）。
