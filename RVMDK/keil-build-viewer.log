@@ -32,7 +32,7 @@
 
 [region info]
 [load region] LR_VECTOR
-	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000C57C [memory type] 2 [memory ID] 3
+	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000C574 [memory type] 2 [memory ID] 3
 
 	[execution region] RW_IRAM1, 0x20000000, 0x00010000, 0x00008028 [memory type] 1 [memory ID] 2
 		[ZI block] addr: 0x20000158, size: 0x00007ED0 (32464)
@@ -174,7 +174,7 @@
 
 [record region info]
 [load region] LR_VECTOR
-	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000C57C [type] 2 [ID] 3
+	[execution region] ER_VECTOR, 0x08000000, 0x00020000, 0x0000C574 [type] 2 [ID] 3
 	[execution region] RW_IRAM1, 0x20000000, 0x00010000, 0x00008028 [type] 1 [ID] 2
 -----------------------------------------------------------------------------------------------------------------------
                              FILE(s)                            |         RAM (byte)       |       FLASH (byte)       |
@@ -225,7 +225,7 @@
 ..\Libraries\FWlib\src\stm32f10x_usart.c():                     |           0              |         442              |
 ..\app\sys_state.c():                                           |          47              |         379              |
 ..\Libraries\CMSIS\system_stm32f10x.c():                        |           0              |         328              |
-..\app\task_download.c():                                       |         888              |        4012              |
+..\app\task_download.c():                                       |         888              |        4004              |
 ..\app\task_key.c():                                            |          64              |         280              |
 ..\app\task_led_wdg.c():                                        |           8              |         448              |
 -----------------------------------------------------------------------------------------------------------------------
@@ -241,4 +241,4 @@ LR_VECTOR
 [htm file path] D:\claude\downloader\downloader\RVMDK\D:\output\MDK\IL-800-FD\IL800_FD.htm
 =============================================================================================================================
 
-run time: 0.090 s
+run time: 0.089 s
