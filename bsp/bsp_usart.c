@@ -1,5 +1,6 @@
 /* bsp/bsp_usart.c */
 #include "bsp_usart.h"
+#include "bsp_gpio.h"   /* LED_TX/LED_RX 收发指示 */
 
 OS_SEM g_usart1_rx_sem;
 
@@ -147,6 +148,7 @@ void BSP_USART1_Send(const uint8_t *buf, uint16_t len)
     for (uint16_t i = 0; i < len; i++) {
         while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
         USART_SendData(USART1, buf[i]);
+        BSP_LED_Toggle(LED_TX_PORT, LED_TX_PIN);   /* TX 活动指示 */
     }
     while (USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET);
 }
@@ -171,6 +173,13 @@ uint8_t BSP_USART1_GetRxFlags(void)
 uint32_t BSP_USART1_GetRxMaxGapMs(void)
 {
     return g_rx_max_gap_ms;
+}
+
+/* 关闭收发指示 LED（通讯结束后调用） */
+void BSP_USART1_LED_Off(void)
+{
+    BSP_LED_Off(LED_TX_PORT, LED_TX_PIN);
+    BSP_LED_Off(LED_RX_PORT, LED_RX_PIN);
 }
 
 uint16_t BSP_USART1_GetRecvLen(void) { return g_rx_len; }
@@ -204,6 +213,7 @@ void BSP_USART1_IRQHandler(void)
         if (g_rx_len < USART1_RX_BUF_SIZE) {
             g_rx_buf[g_rx_len++] = g_rx_byte;
         }
+        BSP_LED_Toggle(LED_RX_PORT, LED_RX_PIN);   /* RX 活动指示 */
         /* 收到新字节: 重置超时计数 */
         g_rx_timeout = RX_TIMEOUT_TICKS;
 
@@ -227,6 +237,7 @@ void BSP_USART1_IRQHandler(void)
         if (RX_FrameComplete() || g_rx_len > RX_FRAME_READY_LEN) {
             g_rx_flags = (uint8_t)(USART1->SR & (USART_FLAG_ORE | USART_FLAG_NE | USART_FLAG_FE));
             USART_ITConfig(USART1, USART_IT_RXNE, DISABLE);
+            BSP_USART1_LED_Off();   /* 一帧结束, 关闭收发灯 */
             OSSemPost(&g_usart1_rx_sem, OS_OPT_POST_1, &err);
         }
     }
@@ -250,9 +261,10 @@ void BSP_USART1_TIMEOUT_Handler(void)
         if (g_rx_timeout > 0u) {
             g_rx_timeout--;
             if (g_rx_timeout == 0u && g_rx_len > 0u) {
-                /* 300ms 无新数据, 帧结束 */
+                /* 超时无新数据, 帧结束 */
                 g_rx_flags = (uint8_t)(USART1->SR & (USART_FLAG_ORE | USART_FLAG_NE | USART_FLAG_FE));
                 USART_ITConfig(USART1, USART_IT_RXNE, DISABLE);
+                BSP_USART1_LED_Off();   /* 一帧结束, 关闭收发灯 */
                 OSSemPost(&g_usart1_rx_sem, OS_OPT_POST_1, &err);
             }
         }

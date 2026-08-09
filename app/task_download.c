@@ -589,8 +589,6 @@ void AppTask_Download(void *p_arg)
                                offset, g_seg_buf, (uint16_t)seg_size,
                                g_tx_buf, &len);
 
-            BSP_LED_Toggle(LED_TX_PORT, LED_TX_PIN);   /* TX 活动指示 */
-
             BSP_USART2_Printf("[DWN] Seg 0x%08lX: %luB (%.1f%%)\r\n",
                               (unsigned long)offset, (unsigned long)seg_size,
                               (float)(offset * 100.0 / (double)fw_total_size));
@@ -749,7 +747,8 @@ void AppTask_Download(void *p_arg)
             if (src == DATA_SRC_SD_CARD) {
                 SD_FileClose();
             }
-            /* 下载结束: 输出总耗时 + 全程最大耗时统计 */
+            /* 下载结束: 关闭收发灯 + 输出总耗时 + 全程最大耗时统计 */
+            BSP_USART1_LED_Off();
             {
                 OS_ERR t_err;
                 uint32_t end_tick = OSTimeGet(&t_err);
@@ -783,7 +782,8 @@ void AppTask_Download(void *p_arg)
             if (src == DATA_SRC_SD_CARD) {
                 SD_FileClose();
             }
-            /* 传输终止: 输出总耗时 */
+            /* 传输终止: 关闭收发灯 + 输出总耗时 */
+            BSP_USART1_LED_Off();
             {
                 OS_ERR t_err;
                 uint32_t end_tick = OSTimeGet(&t_err);
