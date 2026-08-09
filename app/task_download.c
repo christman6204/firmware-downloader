@@ -329,9 +329,9 @@ void AppTask_Download(void *p_arg)
                 DataSource_t next = (cur == DATA_SRC_SD_CARD)
                                     ? DATA_SRC_MCU_FLASH
                                     : DATA_SRC_SD_CARD;
-                BSP_USART2_Printf("[DWN] Switch source: %s -> %s\r\n",
-                                  (cur == DATA_SRC_SD_CARD) ? "SD" : "FLASH",
-                                  (next == DATA_SRC_SD_CARD) ? "SD" : "FLASH");
+                BSP_USART2_Printf("[DWN] Data source: %s (was %s)\r\n",
+                                  (next == DATA_SRC_SD_CARD) ? "SD_CARD" : "MCU_FLASH",
+                                  (cur == DATA_SRC_SD_CARD) ? "SD_CARD" : "MCU_FLASH");
                 if (next == DATA_SRC_SD_CARD) {
                     if (!SD_IsPresent()) {
                         /* SD 卡不在：报错并保持当前数据源 */
