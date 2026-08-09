@@ -743,13 +743,20 @@ void AppTask_Download(void *p_arg)
             if (src == DATA_SRC_SD_CARD) {
                 SD_FileClose();
             }
-            /* 下载结束: 输出全程最大耗时统计 */
-            BSP_USART2_Printf("[DWN] ===== Download stats =====\r\n");
-            BSP_USART2_Printf("[DWN] Max reply latency: %lu ms\r\n",
-                              (unsigned long)g_max_reply_latency_ms);
-            BSP_USART2_Printf("[DWN] Max byte gap: %lu ms\r\n",
-                              (unsigned long)g_max_byte_gap_ms);
-            BSP_USART2_Printf("[DWN] ===========================\r\n");
+            /* 下载结束: 输出总耗时 + 全程最大耗时统计 */
+            {
+                OS_ERR t_err;
+                uint32_t end_tick = OSTimeGet(&t_err);
+                uint32_t total_ms = (end_tick - start_tick) * 2u;  /* 500Hz -> 2ms */
+                BSP_USART2_Printf("[DWN] ===== Download stats =====\r\n");
+                BSP_USART2_Printf("[DWN] Total download time: %lu ms\r\n",
+                                  (unsigned long)total_ms);
+                BSP_USART2_Printf("[DWN] Max reply latency: %lu ms\r\n",
+                                  (unsigned long)g_max_reply_latency_ms);
+                BSP_USART2_Printf("[DWN] Max byte gap: %lu ms\r\n",
+                                  (unsigned long)g_max_byte_gap_ms);
+                BSP_USART2_Printf("[DWN] ===========================\r\n");
+            }
             BSP_USART2_Printf("[DWN] Transfer ended, lock released\r\n");
             state = DL_STATE_IDLE;
             break;
@@ -769,6 +776,14 @@ void AppTask_Download(void *p_arg)
             SysState_SetTransferLock(0u);
             if (src == DATA_SRC_SD_CARD) {
                 SD_FileClose();
+            }
+            /* 传输终止: 输出总耗时 */
+            {
+                OS_ERR t_err;
+                uint32_t end_tick = OSTimeGet(&t_err);
+                uint32_t total_ms = (end_tick - start_tick) * 2u;
+                BSP_USART2_Printf("[DWN] Total download time: %lu ms\r\n",
+                                  (unsigned long)total_ms);
             }
             BSP_USART2_Printf("[DWN] Transfer ended, lock released\r\n");
             state = DL_STATE_IDLE;
