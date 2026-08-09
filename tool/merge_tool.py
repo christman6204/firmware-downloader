@@ -46,6 +46,7 @@ GAP         = 10
 
 # ── 合并参数 ─────────────────────────────────────────
 APP_OFFSET   = 0x20000       # APP 起始偏移 128KB
+APP_SIZE_OFF = 0x20002       # APP 文件大小字段偏移 (4字节小端)
 FILL_BYTE    = 0xFF          # 间隙填充
 OUTPUT_NAME  = "IL800_FD.BIN"  # 输出固定名
 
@@ -272,6 +273,73 @@ class App:
         except Exception:
             pass
 
+    def _verify_output(self, bt_data, app_data, output_path):
+        """严格校验合并输出镜像。
+
+        校验项:
+          1. 文件大小 == 0x20000 + APP 大小
+          2. offset 0        : BT 数据逐字节一致
+          3. offset 0x20000  : APP 数据[0:2] + 大小字段(0x20002) + APP数据[6:] 一致
+          4. 间隙 (BT末..0x20000): 全部 0xFF
+          5. 无重叠 (BT 未超 0x20000)
+        """
+        try:
+            with open(output_path, "rb") as f:
+                out = f.read()
+
+            # 1. 大小
+            expect_size = APP_OFFSET + len(app_data)
+            if len(out) != expect_size:
+                _append(self.log, f"  [FAIL] 大小 {len(out)} != {expect_size}", "err")
+                return False
+
+            # 5. BT 不超 APP 偏移
+            if len(bt_data) > APP_OFFSET:
+                _append(self.log, f"  [FAIL] BT 数据超 0x{APP_OFFSET:05X}", "err")
+                return False
+
+            # 2. BT 数据一致
+            if out[0:len(bt_data)] != bt_data:
+                _append(self.log, "  [FAIL] BT 数据不一致", "err")
+                return False
+            _append(self.log, f"  [OK] BT 数据 ({len(bt_data):,} B) 一致", "ok")
+
+            # 4. 间隙全 0xFF
+            gap = out[len(bt_data):APP_OFFSET]
+            if any(b != FILL_BYTE for b in gap):
+                n_bad = sum(1 for b in gap if b != FILL_BYTE)
+                _append(self.log, f"  [FAIL] 间隙 {len(gap):,} B 中有 {n_bad} 个非 0x{FILL_BYTE:02X}", "err")
+                return False
+            _append(self.log, f"  [OK] 间隙 ({len(gap):,} B) 全 0x{FILL_BYTE:02X}", "ok")
+
+            # 3. APP 数据一致 (考虑 0x20002 处大小字段被补丁)
+            #    布局: [0:2]=APP[0:2] [2:6]=size_LE [6:]=APP[6:]
+            if len(app_data) >= 6:
+                if out[APP_OFFSET:APP_OFFSET + 2] != app_data[0:2]:
+                    _append(self.log, "  [FAIL] APP 头部[0:2] 不一致", "err")
+                    return False
+                size_le = out[APP_SIZE_OFF:APP_SIZE_OFF + 4]
+                size_val = int.from_bytes(size_le, "little")
+                if size_val != len(app_data):
+                    _append(self.log, f"  [FAIL] APP 大小字段 {size_val} != {len(app_data)}", "err")
+                    return False
+                app_tail = out[APP_OFFSET + 6:APP_OFFSET + len(app_data)]
+                if app_tail != app_data[6:]:
+                    _append(self.log, "  [FAIL] APP 数据[6:] 不一致", "err")
+                    return False
+                _append(self.log, f"  [OK] APP 数据 ({len(app_data):,} B) 一致 (大小字段 {size_val:,} B)", "ok")
+            else:
+                if out[APP_OFFSET:APP_OFFSET + len(app_data)] != app_data:
+                    _append(self.log, "  [FAIL] APP 数据不一致", "err")
+                    return False
+                _append(self.log, f"  [OK] APP 数据 ({len(app_data):,} B) 一致", "ok")
+
+            _append(self.log, "  全部校验通过", "ok")
+            return True
+        except Exception as e:
+            _append(self.log, f"  [FAIL] 校验异常: {e}", "err")
+            return False
+
     def _run_merge(self):
         bt = self.t_bt.get().strip()
         ap = self.t_app.get().strip()
@@ -338,6 +406,17 @@ class App:
             # APP 数据从 0x20000 偏移
             buffer[APP_OFFSET:APP_OFFSET + len(app_data)] = app_data
 
+            # 在 0x20002 写入 APP 文件大小 (4字节小端)
+            if len(app_data) >= 6:
+                size_le = len(app_data).to_bytes(4, "little")
+                buffer[APP_SIZE_OFF:APP_SIZE_OFF + 4] = size_le
+                _append(self.log,
+                        f"  0x{APP_SIZE_OFF:05X}  APP 大小字段: {len(app_data):,} B (LE)",
+                        "info")
+            else:
+                _append(self.log,
+                        f"  [WARN] APP 文件 < 6 字节, 无法写入大小字段", "warn")
+
             # ---- Step 4: 输出 ----
             output = os.path.join(outdir, OUTPUT_NAME)
             with open(output, "wb") as f:
@@ -346,7 +425,14 @@ class App:
             _append(self.log, f"  -> {output}", "ok")
             _append(self.log, f"  文件大小: {len(buffer):,} B ({fmt_size(len(buffer))})", "info")
             _append(self.log, "", "dim")
-            _append(self.log, f"合并完成: {OUTPUT_NAME}", "ok")
+
+            # ---- Step 5: 严格校验 ----
+            _append(self.log, "校验镜像...", "dim")
+            ok = self._verify_output(bt_data, app_data, output)
+            if ok:
+                _append(self.log, f"合并完成: {OUTPUT_NAME} (校验通过)", "ok")
+            else:
+                _append(self.log, "校验失败: 输出镜像与源数据不一致!", "err")
 
         except Exception as e:
             _append(self.log, f"[ERROR] {e}", "err")
