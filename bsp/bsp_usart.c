@@ -19,6 +19,34 @@ static uint8_t  g_rx_byte;
 #define RX_FRAME_READY_LEN  128u     /* 字节数阈值 */
 static volatile uint16_t g_rx_timeout = 0u;   /* 递减计数器, 0 表示已超时 */
 
+/* 检查接收缓冲是否已包含一个完整帧 (帧头 + 长度字段 + 足够字节)
+   用于提前上报，避免每段回复都等超时。 */
+static uint8_t RX_FrameComplete(void)
+{
+    uint16_t k;
+
+    for (k = 0u; k + 4u <= g_rx_len; k++) {
+        if (g_rx_buf[k] == 0xFEu &&
+            g_rx_buf[k + 1u] == 0xEFu &&
+            g_rx_buf[k + 2u] == 0xEDu &&
+            g_rx_buf[k + 3u] == 0xFCu) {
+            /* 找到帧头，检查长度字段是否可读 */
+            if (k + 8u > g_rx_len) { return 0u; }
+            {
+                uint16_t length = (uint16_t)(((uint16_t)g_rx_buf[k + 6u] << 8)
+                                           | g_rx_buf[k + 7u]);
+                if (length < 12u) { return 0u; }
+                {
+                    uint16_t cl = (uint16_t)(length - 12u);
+                    uint16_t total = (uint16_t)(k + 16u + cl + 4u);  /* 头+固定+cmd+尾 */
+                    return (g_rx_len >= total) ? 1u : 0u;
+                }
+            }
+        }
+    }
+    return 0u;
+}
+
 static void BSP_TIM3_Init(void)
 {
     TIM_TimeBaseInitTypeDef TIM_InitStruct;
@@ -195,8 +223,8 @@ void BSP_USART1_IRQHandler(void)
             }
         }
 
-        /* 累积超过阈值: 立即上报应用层 */
-        if (g_rx_len > RX_FRAME_READY_LEN) {
+        /* 已构成完整帧 或 累积超过阈值: 立即上报（不等超时） */
+        if (RX_FrameComplete() || g_rx_len > RX_FRAME_READY_LEN) {
             g_rx_flags = (uint8_t)(USART1->SR & (USART_FLAG_ORE | USART_FLAG_NE | USART_FLAG_FE));
             USART_ITConfig(USART1, USART_IT_RXNE, DISABLE);
             OSSemPost(&g_usart1_rx_sem, OS_OPT_POST_1, &err);
