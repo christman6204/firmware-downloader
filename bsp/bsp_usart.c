@@ -10,6 +10,14 @@ static volatile uint8_t  g_rx_flags = 0u;   /* 帧结束时的 SR 错误标志 (
 static volatile uint32_t g_rx_max_gap_ms = 0u;  /* 相邻字节最大间隔 (ms) */
 static uint8_t  g_rx_byte;
 
+/* ---- 收发 LED 闪烁控制 (TIM3 10ms 计时) ----
+   每次活动点亮 ≥100ms, 熄灭 ≥100ms (5Hz 闪烁) */
+#define LED_BLINK_TICKS   10u     /* 100ms / 10ms */
+static volatile uint8_t g_led_tx_on_cnt  = 0u;   /* TX LED 剩余点亮 tick */
+static volatile uint8_t g_led_tx_off_cnt = 0u;   /* TX LED 剩余熄灭 tick */
+static volatile uint8_t g_led_rx_on_cnt  = 0u;
+static volatile uint8_t g_led_rx_off_cnt = 0u;
+
 /* ---- 接收超时计时 (TIM3, 10ms 周期) ----
    设备回复可能不连续。判定"一帧结束"的条件:
      1) 累积字节 > RX_FRAME_READY_LEN (128), 或
@@ -143,12 +151,30 @@ void BSP_USART_Init(void)
     g_rx_timeout = 0u;
 }
 
+/* TX 活动: 点亮 TX LED (若不在最小熄灭期), 保证亮 ≥100ms */
+static void LED_TX_Activity(void)
+{
+    if (g_led_tx_off_cnt == 0u) {   /* 不在最小熄灭期 */
+        BSP_LED_On(LED_TX_PORT, LED_TX_PIN);
+        g_led_tx_on_cnt = LED_BLINK_TICKS;   /* 刷新点亮 100ms */
+    }
+}
+
+/* RX 活动: 点亮 RX LED (若不在最小熄灭期), 保证亮 ≥100ms */
+static void LED_RX_Activity(void)
+{
+    if (g_led_rx_off_cnt == 0u) {
+        BSP_LED_On(LED_RX_PORT, LED_RX_PIN);
+        g_led_rx_on_cnt = LED_BLINK_TICKS;
+    }
+}
+
 void BSP_USART1_Send(const uint8_t *buf, uint16_t len)
 {
     for (uint16_t i = 0; i < len; i++) {
         while (USART_GetFlagStatus(USART1, USART_FLAG_TXE) == RESET);
         USART_SendData(USART1, buf[i]);
-        BSP_LED_Toggle(LED_TX_PORT, LED_TX_PIN);   /* TX 活动指示 */
+        LED_TX_Activity();
     }
     while (USART_GetFlagStatus(USART1, USART_FLAG_TC) == RESET);
 }
@@ -180,6 +206,10 @@ void BSP_USART1_LED_Off(void)
 {
     BSP_LED_Off(LED_TX_PORT, LED_TX_PIN);
     BSP_LED_Off(LED_RX_PORT, LED_RX_PIN);
+    g_led_tx_on_cnt  = 0u;
+    g_led_tx_off_cnt = 0u;
+    g_led_rx_on_cnt  = 0u;
+    g_led_rx_off_cnt = 0u;
 }
 
 uint16_t BSP_USART1_GetRecvLen(void) { return g_rx_len; }
@@ -213,7 +243,7 @@ void BSP_USART1_IRQHandler(void)
         if (g_rx_len < USART1_RX_BUF_SIZE) {
             g_rx_buf[g_rx_len++] = g_rx_byte;
         }
-        BSP_LED_Toggle(LED_RX_PORT, LED_RX_PIN);   /* RX 活动指示 */
+        LED_RX_Activity();
         /* 收到新字节: 重置超时计数 */
         g_rx_timeout = RX_TIMEOUT_TICKS;
 
@@ -267,6 +297,26 @@ void BSP_USART1_TIMEOUT_Handler(void)
                 BSP_USART1_LED_Off();   /* 一帧结束, 关闭收发灯 */
                 OSSemPost(&g_usart1_rx_sem, OS_OPT_POST_1, &err);
             }
+        }
+
+        /* ---- TX LED 计时 (亮 ≥100ms, 灭 ≥100ms) ---- */
+        if (g_led_tx_on_cnt > 0u) {
+            if (--g_led_tx_on_cnt == 0u) {
+                BSP_LED_Off(LED_TX_PORT, LED_TX_PIN);
+                g_led_tx_off_cnt = LED_BLINK_TICKS;   /* 熄灭 ≥100ms */
+            }
+        } else if (g_led_tx_off_cnt > 0u) {
+            g_led_tx_off_cnt--;
+        }
+
+        /* ---- RX LED 计时 ---- */
+        if (g_led_rx_on_cnt > 0u) {
+            if (--g_led_rx_on_cnt == 0u) {
+                BSP_LED_Off(LED_RX_PORT, LED_RX_PIN);
+                g_led_rx_off_cnt = LED_BLINK_TICKS;
+            }
+        } else if (g_led_rx_off_cnt > 0u) {
+            g_led_rx_off_cnt--;
         }
     }
 }
