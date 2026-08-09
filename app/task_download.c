@@ -324,7 +324,8 @@ void AppTask_Download(void *p_arg)
             BSP_USART2_Printf("[DWN] Key event: %lu\r\n", (unsigned long)evt);
 
             if (evt == KEY_EVT_B1_LONG) {
-                /* 切换数据源：SD 卡 <-> MCU Flash */
+                /* 切换数据源：SD 卡 <-> MCU Flash
+                   联动固件类型: SD→普通固件, FLASH→出厂固件 */
                 DataSource_t cur = SysState_GetDataSource();
                 DataSource_t next = (cur == DATA_SRC_SD_CARD)
                                     ? DATA_SRC_MCU_FLASH
@@ -341,6 +342,11 @@ void AppTask_Download(void *p_arg)
                     }
                 }
                 SysState_SetDataSource(next);
+
+                /* 固件类型随数据源联动: SD→Normal, FLASH→Factory */
+                SysState_SetFwType((next == DATA_SRC_SD_CARD) ? FW_NORMAL : FW_FACTORY);
+                BSP_USART2_Printf("[DWN] FW type: %s\r\n",
+                                  (next == DATA_SRC_SD_CARD) ? "Normal" : "Factory");
             }
             else if (evt == KEY_EVT_B2_LONG) {
                 /* 切换固件类型：普通 <-> 工厂 */
