@@ -420,16 +420,31 @@ void AppTask_Download(void *p_arg)
                 sd_fptr = 0u;   /* fptr 已归零，与 offset=0 对齐 */
             }
             else {
-                /* ---- MCU Flash 源 ---- */
+                /* ---- MCU Flash 源 ----
+                   布局 (由合并工具生成, 见 tool/merge_tool.py):
+                     0x08020000: 固件版本 (2字节 LE)
+                     0x08020002: APP 文件大小 (4字节 LE, 合并工具写入)
+                     0x08020006: APP 固件数据
+                   传输大小 = 0x08020002 处记录的大小 */
                 const uint8_t *flash_ptr = (const uint8_t *)APP_FLASH_APP_ADDR;
 
-                fw_total_size = APP_FLASH_APP_MAX_SIZE;   /* 300KB */
                 fw_ver = (uint16_t)((uint16_t)flash_ptr[0]
                           | ((uint16_t)flash_ptr[1] << 8));
 
-                /* 版本为 0xFFFF 表示未写入固件，禁止传输 */
-                if (fw_ver == 0xFFFFu) {
-                    BSP_USART2_Printf("[DWN] Flash: version=0xFFFF (no firmware), aborting.\r\n");
+                /* 从 0x08020002 读取 APP 大小 (4字节小端) */
+                fw_total_size = (uint32_t)flash_ptr[2]
+                              | ((uint32_t)flash_ptr[3] << 8)
+                              | ((uint32_t)flash_ptr[4] << 16)
+                              | ((uint32_t)flash_ptr[5] << 24);
+
+                BSP_USART2_Printf("[DWN] Flash: ver=0x%04X, size=%lu\r\n",
+                                  (unsigned int)fw_ver,
+                                  (unsigned long)fw_total_size);
+
+                /* 校验: 版本 0xFFFF 或大小无效 (0xFFFFFFFF/0/超上限) → 无固件 */
+                if (fw_ver == 0xFFFFu || fw_total_size == 0xFFFFFFFFu ||
+                    fw_total_size == 0u || fw_total_size > APP_FLASH_APP_MAX_SIZE) {
+                    BSP_USART2_Printf("[DWN] Flash: invalid firmware (ver/size), aborting.\r\n");
                     Buzzer_Request(BUZZER_CMD_ERROR);
                     SysState_SetTransferLock(0u);
                     state = DL_STATE_IDLE;
