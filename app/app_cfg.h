@@ -2,6 +2,9 @@
 #ifndef  __APP_CFG_H__
 #define  __APP_CFG_H__
 
+/* ==================== 版本 ==================== */
+#define  APP_FW_VERSION   "V2.0"    /* 固件下载器自身版本号 */
+
 /* ==================== 任务优先级 ==================== */
 /* 内核占用: Tick=10, Tmr=22, Stat=23, Idle=31 */
 #define  APP_TASK_START_PRIO          26u
